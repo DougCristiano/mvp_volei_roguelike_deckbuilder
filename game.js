@@ -41,7 +41,6 @@ function buildDeck(){
   const types = ['service', 'setting', 'attack', 'defense', 'block', 'support'];
   types.forEach(t => {
     const typeCards = CARDS_DB.filter(c => c.type === t);
-    for(let i=0; i<6; i++) pool.push({...typeCards[i % typeCards.length]});
     for(let i=0; i<7; i++) pool.push({...typeCards[i % typeCards.length]});
   });
   G.deck=shuffle(pool);
@@ -152,7 +151,7 @@ function playCard(){
       log('🏐 Saque realizado com sucesso! A bola cruzou a rede...');
       G.phase='defense';
       render();
-      setTimeout(() => passBall(true), 600);
+      setTimeout(() => passBall(true, true), 600);
     }
   }
   else if(G.phase==='defense'){G.phase='setting';log('🤲 Levantamento... Prepare a jogada.');G.locked=false;drawPhaseOptions();checkFreeball();render();}
@@ -215,11 +214,13 @@ function checkFreeball(){
   }
 }
 
-function passBall(forced){
+function passBall(forced, isServe = false){
   if(G.pointDone)return;
-  if(!forced)log('↩ Você passou a bola (+2⚡).');
-  else log('↩ Bola livre enviada (+2⚡).');
-  G.energy = Math.min(G.energy + 2, G.maxEnergy);
+  if(!isServe) {
+    if(!forced)log('↩ Você passou a bola (+2⚡).');
+    else log('↩ Bola livre enviada (+2⚡).');
+    G.energy = Math.min(G.energy + 2, G.maxEnergy);
+  }
   clearHand();
   G.possession='ai';G.locked=true;render();
   setTimeout(()=>aiTurn(),900);
@@ -273,7 +274,6 @@ function aiTurn(){
 
       let setPlay = getAIPlay('setting', G.aiEnergy - aiCost);
       if (setPlay.drew) { aiCost += setPlay.drawCost; aiCards.push("🃏 Comprou"); }
-      if (setPlay.card) { aiCost += setPlay.card.cost; aiCards.push(setPlay.card.name); comboCount++; if(setPlay.card.bonus === 'atkBoost2') atkBoost += 2; }
       if (setPlay.card) { 
         aiCost += setPlay.card.cost; aiCards.push(setPlay.card.name); comboCount++; 
         if(setPlay.card.bonus && setPlay.card.bonus.startsWith('atkBoost')) atkBoost += parseInt(setPlay.card.bonus.replace('atkBoost', '')); 
