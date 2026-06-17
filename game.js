@@ -27,7 +27,7 @@ const COMBO_SEQ=['reception','setting','attack'];
 let G={};
 
 function newGame(){
-  G={pPts:0,aPts:0,pSets:0,aSets:0,energy:3,maxEnergy:3,aiEnergy:3,maxAiEnergy:3,deck:[],hand:[],discard:[],phase:'service',possession:'player',nextServer:'player',comboIdx:0,atkBoost:0,aiDefMinus:0,aiAtkPow:0,selected:[],defWindow:false,blockWindow:false,locked:false,pointDone:false,log:[],blockTimerVal:0,blockInterval:null};
+  G={pPts:0,aPts:0,pSets:0,aSets:0,energy:10,maxEnergy:10,aiEnergy:10,maxAiEnergy:10,deck:[],hand:[],discard:[],phase:'service',possession:'player',nextServer:'player',comboIdx:0,atkBoost:0,aiDefMinus:0,aiAtkPow:0,selected:[],defWindow:false,blockWindow:false,locked:false,pointDone:false,log:[],blockTimerVal:0,blockInterval:null,aiJustDefended:false};
   buildDeck();startPoint();
 }
 
@@ -52,7 +52,7 @@ function startPoint(){
   G.energy=G.maxEnergy;G.phase='service';
   G.aiEnergy=G.maxAiEnergy;
   G.possession=G.nextServer || 'player';
-  G.comboIdx=0;G.atkBoost=0;G.aiDefMinus=0;G.selected=[];G.defWindow=false;G.blockWindow=false;G.locked=false;G.pointDone=false;
+  G.comboIdx=0;G.atkBoost=0;G.aiDefMinus=0;G.selected=[];G.defWindow=false;G.blockWindow=false;G.locked=false;G.pointDone=false;G.aiJustDefended=false;
   clearInterval(G.blockInterval);
   hidePointResult();
 
@@ -73,7 +73,7 @@ function startPoint(){
 function log(msg){G.log.unshift(msg);if(G.log.length>40)G.log.pop();}
 
 function canPlay(card){
-  if(G.defWindow)return card.phases.includes('defense')&&card.cost<=G.energy;
+  if(G.defWindow)return (card.phases.includes('defense')||card.phases.includes('reception'))&&card.cost<=G.energy;
   if(G.blockWindow)return card.phases.includes('block')&&card.cost<=G.energy;
   return card.phases.includes(G.phase)&&card.cost<=G.energy;
 }
@@ -96,6 +96,7 @@ function playCard(){
   updateCombo(card);
   if(G.phase==='service'){
     log('🏐 Saque realizado! A bola cruzou a rede...');
+    G.phase='reception';
     render();
     setTimeout(() => passBall(true), 600);
   }
@@ -143,14 +144,70 @@ function passBall(forced){
 
 function aiTurn(){
   if(G.pointDone)return;
-  log('🤖 IA preparando ataque...');render();
+  log('🤖 IA preparando jogada...');render();
   setTimeout(()=>{
-    const cost = 1;
-    G.aiEnergy = Math.max(0, G.aiEnergy - cost);
-    const pow=2+Math.floor(Math.random()*5);G.aiAtkPow=pow;
+    function getAIPlay(phase, maxCost) {
+      let possible = CARDS_DB.filter(c => c.phases.includes(phase) && c.cost <= maxCost && c.power > 0);
+      if(possible.length === 0) return { card: null, drew: false, drawCost: 0 };
+      
+      // Simula a chance (30%) da IA não ter a carta na mão e precisar gastar 1 de energia para comprá-la
+      let drew = false;
+      let drawCost = 0;
+      if (Math.random() < 0.30 && maxCost >= 1) {
+        drew = true;
+        drawCost = 1;
+        maxCost -= 1;
+        possible = CARDS_DB.filter(c => c.phases.includes(phase) && c.cost <= maxCost && c.power > 0);
+        if (possible.length === 0) return { card: null, drew: true, drawCost: 1 };
+      }
+      return { card: possible[Math.floor(Math.random() * possible.length)], drew, drawCost };
+    }
+
+    const targetPhase = (G.phase === 'service') ? 'service' : 'attack';
+    let aiCost = 0;
+    let aiCards = [];
+    let comboCount = 0;
+    let atkBoost = 0;
+    let power = 0;
+
+    if (targetPhase === 'service') {
+      let play = getAIPlay('service', G.aiEnergy);
+      let card = play.card || CARDS_DB.find(c => c.id === 'srv3');
+      if (play.drew) { aiCost += play.drawCost; aiCards.push("🃏 Comprou"); }
+      aiCost += card.cost; power = card.power; aiCards.push(card.name);
+    } else {
+      // Sequência Tática: Recepção -> Levantamento -> Ataque
+      if (!G.aiJustDefended) {
+        let recPlay = getAIPlay('reception', G.aiEnergy - aiCost);
+        if (recPlay.drew) { aiCost += recPlay.drawCost; aiCards.push("🃏 Comprou"); }
+        if (recPlay.card) { aiCost += recPlay.card.cost; aiCards.push(recPlay.card.name); comboCount++; }
+        else { aiCards.push("Manchete Improvisada"); }
+      } else {
+        comboCount++; aiCards.push("(Já defendeu)");
+      }
+
+      let setPlay = getAIPlay('setting', G.aiEnergy - aiCost);
+      if (setPlay.drew) { aiCost += setPlay.drawCost; aiCards.push("🃏 Comprou"); }
+      if (setPlay.card) { aiCost += setPlay.card.cost; aiCards.push(setPlay.card.name); comboCount++; if(setPlay.card.bonus === 'atkBoost2') atkBoost += 2; }
+
+      let atkPlay = getAIPlay('attack', G.aiEnergy - aiCost);
+      if (atkPlay.drew) { aiCost += atkPlay.drawCost; aiCards.push("🃏 Comprou"); }
+      if (atkPlay.card) {
+        aiCost += atkPlay.card.cost; aiCards.push(atkPlay.card.name); comboCount++;
+        power = atkPlay.card.power + atkBoost + (comboCount >= 3 ? 2 : 0);
+      } else {
+        power = 1 + Math.floor(Math.random() * 2); aiCards.push("Freeball");
+      }
+    }
+
+    G.aiJustDefended = false;
+    G.aiEnergy = Math.max(0, G.aiEnergy - aiCost);
+    G.aiAtkPow = power;
+    
+    log(`🤖 IA jogou: ${aiCards.join(' ➔ ')} (Gasto ${aiCost}⚡)`);
     G.blockWindow=true;G.selected=[];G.phase='block';
     G.energy=Math.min(G.energy+1,G.maxEnergy);G.locked=false;
-    log(`⚡ IA ataca com poder ${pow}! Bloquear ou Deixar passar?`);
+    log(`⚡ IA ataca com poder ${G.aiAtkPow}! Bloquear ou Deixar passar?`);
     
     // Inicia Timer de Bloqueio (5 segundos para decisão)
     G.blockTimerVal = 5.0;
@@ -229,10 +286,17 @@ function resolveDefense(){
   if(!G.defWindow||G.pointDone)return;
   clearTimeout(G._defTimer);
   let defPow=0;
+  
   [...G.selected].sort((a,b)=>b-a).forEach(idx=>{
     const c=G.hand[idx];
-    if(c&&c.phases.includes('defense')&&c.cost<=G.energy){defPow+=c.power;G.energy-=c.cost;G.discard.push(c);G.hand.splice(idx,1);log(`🛡 ${c.name} (poder ${c.power})`);}
+    if(c&&(c.phases.includes('defense')||c.phases.includes('reception'))&&c.cost<=G.energy){
+      defPow+=c.power;G.energy-=c.cost;G.discard.push(c);G.hand.splice(idx,1);
+      log(`🛡 ${c.name} (poder ${c.power})`);
+    }
   });
+
+  if(G.selected.length > 0) G.comboIdx = 1; // A defesa/recepção conta como o 1º toque do combo
+
   G.selected=[];G.defWindow=false;
   log(`⚖ IA ${G.aiAtkPow} vs Defesa ${defPow}`);
   if(defPow>=G.aiAtkPow){
@@ -255,8 +319,29 @@ function autoResolve(){
 
 function resolvePlayerAttack(pow){
   if(G.pointDone)return;
-  const aiDef=Math.max(0,(1+Math.floor(Math.random()*4))-G.aiDefMinus);G.aiDefMinus=0;
-  log(`🤖 IA defende ${aiDef}`);log(`⚖ Ataque ${pow} vs IA ${aiDef}`);
+  
+  let aiDef = 0;
+  let aiDefCards = [];
+  
+  // IA defende com 1 carta também (a melhor que puder pagar)
+  let possibleDef = CARDS_DB.filter(c => (c.phases.includes('defense') || c.phases.includes('reception')) && c.cost <= G.aiEnergy).sort((a,b) => b.power - a.power);
+
+  if (possibleDef.length > 0) {
+    let card = possibleDef[0];
+    aiDef = card.power;
+    G.aiEnergy -= card.cost;
+    aiDefCards.push(card.name);
+    G.aiJustDefended = true; // Sinaliza que o primeiro toque da IA no próximo turno já foi feito
+  }
+
+  if (aiDefCards.length > 0) log(`🛡️ IA defendeu com: ${aiDefCards.join(', ')}`);
+  
+  aiDef = Math.max(0, aiDef - G.aiDefMinus);
+  G.aiDefMinus = 0;
+
+  log(`🤖 IA defesa total: ${aiDef}`);
+  log(`⚖ Ataque ${pow} vs IA ${aiDef}`);
+
   if(pow>aiDef){
     log('✅ Ponto para você!');G.pPts++;
     G.nextServer = 'player';
@@ -351,7 +436,7 @@ function render(){
 
 function renderHand(){
   const c=document.getElementById('hand-cards');c.innerHTML='';
-  document.getElementById('hand-title').textContent=G.defWindow?'Mão — selecione cartas de defesa (pode acumular)':`Mão — ${G.hand.length} cartas`;
+  document.getElementById('hand-title').textContent=G.defWindow?'Mão — selecione cartas de defesa/recepção (pode acumular)':`Mão — ${G.hand.length} cartas`;
   G.hand.forEach((card,idx)=>{
     const playable=canPlay(card);const sel=G.selected.includes(idx);
     const blocked=!playable||(G.locked&&!G.defWindow);
@@ -406,7 +491,8 @@ function renderActions(){
 }
 
 function renderLog(){
-  document.getElementById('log-area').innerHTML=G.log.slice(0,6).map(l=>`<div class="log-entry">${l}</div>`).join('');
+  // Aumentado de 6 para 12 entradas visíveis no log
+  document.getElementById('log-area').innerHTML=G.log.slice(0,12).map(l=>`<div class="log-entry">${l}</div>`).join('');
 }
 
 document.getElementById('btn-play').addEventListener('click',playCard);
