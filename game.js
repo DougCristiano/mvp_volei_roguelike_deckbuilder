@@ -503,14 +503,25 @@ function autoResolve(){
   if(!G.defWindow||G.pointDone)return;
   clearInterval(G.defInterval);
   G.defWindow=false;clearHand();
-  log('⏱ Tempo! Defesa 0.');G.aPts++;
+  log('⏱ Tempo esgotado! Defesa 0.');G.aPts++;
   G.nextServer = 'ai';
-  endPoint('loss',`Tempo esgotado. IA atacou com ${G.aiAtkPow}, defesa 0.`);
+  if(G.gameMode === 'multiplayer') sendData({ type: 'DEFENSE_FAIL', defPow: 0 });
+  endPoint('loss',`O ataque/saque superou a defesa.`);
 }
 
 function resolvePlayerAttack(pow){
   if(G.pointDone)return;
   
+  if (G.gameMode === 'multiplayer') {
+    sendData({ type: 'ATTACK', power: pow });
+    log(`Esperando ação (Bloqueio/Defesa) do Oponente...`);
+    G.possession = 'ai';
+    G.locked = true;
+    render();
+    return;
+  }
+
+  // --- Lógica exclusiva da Inteligência Artificial abaixo ---
   let aiDef = 0;
   let aiDefCards = [];
   
@@ -540,11 +551,7 @@ function resolvePlayerAttack(pow){
   } else {
     log(`❌ A IA defendeu seu ataque com sucesso! A posse passou.`);
     G.possession='ai';G.locked=false;render();
-    if (G.gameMode === 'ai') {
-      setTimeout(() => aiTurn(), 900);
-    } else {
-      // TODO: Enviar ação 'resolvePlayerAttack' para o oponente
-    }
+    setTimeout(() => aiTurn(), 900);
   }
 }
 
@@ -759,18 +766,25 @@ playerIdDisplay.addEventListener('click', () => {
 });
 
 function initializePeer() {
-  peer = new Peer();
-  peer.on('open', id => {
-    playerIdDisplay.textContent = id;
-    btnStartMultiplayer.textContent = 'Compartilhe seu ID';
-    connectionStatus.textContent = 'Sala criada! Aguardando conexão...';
-  });
+  try {
+    const shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
+    peer = new Peer(shortId);
 
-  peer.on('connection', (newConn) => {
-    if (conn && conn.open) { newConn.close(); return; }
-    conn = newConn;
-    setupConnectionHandlers(true); // Sou o host
-  });
+    peer.on('open', id => {
+      playerIdDisplay.textContent = id;
+      btnStartMultiplayer.textContent = 'Compartilhe seu ID';
+      connectionStatus.textContent = 'Sala criada! Aguardando conexão...';
+    });
+
+    peer.on('connection', (newConn) => {
+      if (conn && conn.open) { newConn.close(); return; }
+      conn = newConn;
+      setupConnectionHandlers(true); // Sou o host
+    });
+  } catch (e) {
+    console.error(e);
+    connectionStatus.textContent = 'Erro ao iniciar o serviço de rede.';
+  }
 
   peer.on('error', (err) => {
     console.error(err);
