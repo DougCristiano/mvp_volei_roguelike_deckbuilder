@@ -27,7 +27,7 @@ const COMBO_SEQ=['reception','setting','attack'];
 let G={};
 
 function newGame(){
-  G={pPts:0,aPts:0,pSets:0,aSets:0,energy:3,maxEnergy:3,deck:[],hand:[],discard:[],phase:'service',possession:'player',nextServer:'player',comboIdx:0,atkBoost:0,aiDefMinus:0,aiAtkPow:0,selected:[],defWindow:false,blockWindow:false,locked:false,pointDone:false,log:[],blockTimerVal:0,blockInterval:null};
+  G={pPts:0,aPts:0,pSets:0,aSets:0,energy:3,maxEnergy:3,aiEnergy:3,maxAiEnergy:3,deck:[],hand:[],discard:[],phase:'service',possession:'player',nextServer:'player',comboIdx:0,atkBoost:0,aiDefMinus:0,aiAtkPow:0,selected:[],defWindow:false,blockWindow:false,locked:false,pointDone:false,log:[],blockTimerVal:0,blockInterval:null};
   buildDeck();startPoint();
 }
 
@@ -50,6 +50,7 @@ function drawCard(n=1){
 function startPoint(){
   resetDeck();drawCard(5);
   G.energy=G.maxEnergy;G.phase='service';
+  G.aiEnergy=G.maxAiEnergy;
   G.possession=G.nextServer || 'player';
   G.comboIdx=0;G.atkBoost=0;G.aiDefMinus=0;G.selected=[];G.defWindow=false;G.blockWindow=false;G.locked=false;G.pointDone=false;
   clearInterval(G.blockInterval);
@@ -136,6 +137,7 @@ function passBall(forced){
   if(G.pointDone)return;
   if(!forced)log('↩ Você passou a bola.');
   G.possession='ai';G.energy=Math.min(G.energy+1,G.maxEnergy);G.locked=true;render();
+  G.aiEnergy=Math.min(G.aiEnergy+1,G.maxAiEnergy);
   setTimeout(()=>aiTurn(),900);
 }
 
@@ -143,6 +145,8 @@ function aiTurn(){
   if(G.pointDone)return;
   log('🤖 IA preparando ataque...');render();
   setTimeout(()=>{
+    const cost = 1;
+    G.aiEnergy = Math.max(0, G.aiEnergy - cost);
     const pow=2+Math.floor(Math.random()*5);G.aiAtkPow=pow;
     G.blockWindow=true;G.selected=[];G.phase='block';
     G.energy=Math.min(G.energy+1,G.maxEnergy);G.locked=false;
@@ -233,7 +237,7 @@ function resolveDefense(){
   log(`⚖ IA ${G.aiAtkPow} vs Defesa ${defPow}`);
   if(defPow>=G.aiAtkPow){
     log('✅ Defesa! Posse volta para você.');
-    G.possession='player';G.phase='reception';G.energy=Math.min(G.energy+1,G.maxEnergy);drawCard(1);G.locked=false;render();
+    G.possession='player';G.phase='setting';G.energy=Math.min(G.energy+1,G.maxEnergy);drawCard(1);G.locked=false;render();
   } else {
     log(`❌ Ataque passou. Ponto para a IA.`);G.aPts++;
     G.nextServer = 'ai';
@@ -334,6 +338,10 @@ function render(){
   else msg.textContent='Aguardando IA...';
   const pips=document.getElementById('energy-pips');pips.innerHTML='';
   for(let i=0;i<G.maxEnergy;i++){const p=document.createElement('div');p.className='energy-pip'+(i<G.energy?' filled':'');pips.appendChild(p);}
+  
+  const aiPips=document.getElementById('ai-energy-pips');aiPips.innerHTML='';
+  for(let i=0;i<G.maxAiEnergy;i++){const p=document.createElement('div');p.className='energy-pip'+(i<G.aiEnergy?' filled':'');aiPips.appendChild(p);}
+
   document.getElementById('energy-text').textContent=`${G.energy}/${G.maxEnergy}`;
   document.getElementById('freeball-notice').style.display=(G.energy===0&&!G.pointDone)?'block':'none';
   document.getElementById('deck-count').textContent=G.deck.length;

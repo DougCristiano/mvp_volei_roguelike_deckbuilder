@@ -14,6 +14,8 @@ body{font-family:system-ui,sans-serif;background:var(--sky);min-height:100vh;col
 #player-icon{left:18%;}#ai-icon{right:18%;}
 .player-label{font-size:9px;color:var(--text-mid);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;}
 .ball{position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid #ddd;transition:all 0.5s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;justify-content:center;font-size:11px;}
+#ai-energy-pips{display:flex;gap:2px;margin-top:2px;}
+.mini-pips .energy-pip{width:10px;height:10px;border-width:1px;}
 #phase-bar{background:rgba(0,0,0,0.35);padding:8px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 #phase-label{font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.08em;}
 #possession-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;}
