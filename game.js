@@ -225,7 +225,21 @@ function playCard(){
 
   if (card.type === 'support') {
     clearHand();
-    drawPhaseOptions(); // Gera novas opções para a mesma fase
+    drawPhaseOptions();
+    if (card.bonus === 'draw1') {
+      const phases = G.defWindow ? ['defense','support'] : [G.phase,'support'];
+      let extra = null;
+      for (let i = G.deck.length - 1; i >= 0 && !extra; i--) {
+        if (G.deck[i].phases.some(p => phases.includes(p))) extra = G.deck.splice(i, 1)[0];
+      }
+      if (!extra && G.discard.length > 0) {
+        G.deck = shuffle([...G.deck, ...G.discard]); G.discard = [];
+        for (let i = G.deck.length - 1; i >= 0 && !extra; i--) {
+          if (G.deck[i].phases.some(p => phases.includes(p))) extra = G.deck.splice(i, 1)[0];
+        }
+      }
+      if (extra) G.hand.push(extra);
+    }
     G.locked=false;
     render();
     return;
@@ -294,7 +308,7 @@ function applyBonus(card){
   if(card.bonus==='atkBoost2'){G.atkBoost+=2;log('+2 poder no próximo ataque!');}
   if(card.bonus==='atkBoost3'){G.atkBoost+=3;log('+3 poder no próximo ataque!');}
   if(card.bonus==='atkBoost6'){G.atkBoost+=6;log('+6 poder no próximo ataque!');}
-  if(card.bonus==='draw1'){log('+1 Uso Livre! (Efeito de carta ignorado temporariamente)');} // Substituído pelo sistema de draft
+  if(card.bonus==='draw1'){log('🃏 Comunicação! +1 opção extra de carta.');}
   if(card.bonus==='aiDefMinus1'){G.aiDefMinus+=1;log(`${G.gameMode==='multiplayer'?'Oponente':'IA'} defende com -1!`);}
   if(card.bonus==='aiDefMinus2'){G.aiDefMinus+=2;log(`${G.gameMode==='multiplayer'?'Oponente':'IA'} defende com -2!`);}
 }
@@ -780,9 +794,18 @@ function renderActions(){
   }
 }
 
+function logClass(msg){
+  if(/^[✅🎉🏆]/.test(msg)) return 'log-win';
+  if(/^[❌⏱]/.test(msg)) return 'log-loss';
+  if(/^[🛡🧤🔁🏃🤺🤖]/.test(msg)) return 'log-ai';
+  if(/^[+⚡🃏]/.test(msg)) return 'log-energy';
+  if(/^🔥/.test(msg)) return 'log-combo';
+  if(/^—/.test(msg)) return 'log-neutral';
+  if(/^⚖/.test(msg)) return 'log-combat';
+  return '';
+}
 function renderLog(){
-  // Aumentado de 6 para 12 entradas visíveis no log
-  document.getElementById('log-area').innerHTML=G.log.slice(0,12).map(l=>`<div class="log-entry">${l}</div>`).join('');
+  document.getElementById('log-area').innerHTML=G.log.slice(0,12).map(l=>{const c=logClass(l);return`<div class="log-entry${c?' '+c:''}">${l}</div>`;}).join('');
 }
 
 // --- Event Listeners ---
@@ -946,10 +969,19 @@ function setupConnectionHandlers(isHost) {
     }
     if (data.type === 'BLOCK_RESULT') {
        const card = CARDS_DB.find(c => c.id === data.cardId);
-       if (data.resultType === 'SOFTEN') {
-         log(`🧤 O bloqueio ${card.name} do Oponente amorteceu seu ataque.`);
+       const cName = card ? card.name : '';
+       if (data.resultType === 'POINT_DIRECT') {
+         log(`🧱 O bloqueio ${cName} do Oponente parou a bola! Ponto do Oponente.`);
+         G.aPts++; G.nextServer = 'ai';
+         endPoint('loss', 'Bloqueio direto do adversário.');
+       } else if (data.resultType === 'OUT') {
+         log(`✅ O bloqueio do Oponente foi para fora! Ponto seu!`);
+         G.pPts++; G.nextServer = 'player';
+         endPoint('win', 'Bloqueio fora do adversário.');
+       } else if (data.resultType === 'SOFTEN') {
+         log(`🧤 O bloqueio ${cName} do Oponente amorteceu seu ataque.`);
        } else if (data.resultType === 'CONTINUE') {
-         log(`🔁 O bloqueio ${card.name} do Oponente devolveu a bola fácil para você!`);
+         log(`🔁 O bloqueio ${cName} do Oponente devolveu a bola fácil para você!`);
          G.possession = 'player'; G.phase = 'defense'; G.locked = false; drawPhaseOptions(); render();
        }
     }
