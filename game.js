@@ -825,12 +825,26 @@ function setupConnectionHandlers(isHost) {
          render();
        }
     }
-    if (data.type === 'SERVICE_ERROR') {
-       log(`🎉 O saque do Oponente bateu na rede ou foi para fora! Ponto seu.`);
-       G.pPts++; G.nextServer = 'player';
-       render();
-       endPoint('win', 'Erro de saque do Oponente (bola fora ou na rede).');
+    
+    if (data.type === 'POINT_END') {
+        const myRole = G.isHost ? 'host' : 'client';
+        const iWon = data.winnerRole === myRole;
+        const resultType = iWon ? 'win' : 'loss';
+        
+        // Aplica o placar absoluto e inquestionável fornecido pela autoridade
+        G.pPts = G.isHost ? data.hostPts : data.clientPts;
+        G.aPts = G.isHost ? data.clientPts : data.hostPts;
+        G.pSets = G.isHost ? data.hostSets : data.clientSets;
+        G.aSets = G.isHost ? data.clientSets : data.hostSets;
+        G.nextServer = (data.nextServerRole === myRole) ? 'player' : 'ai';
+        
+        log(iWon ? `🎉 Ponto seu! ${data.reason}` : `❌ Ponto do Oponente. ${data.reason}`);
+        
+        G.isNetworkReceiver = true; G.networkPointData = data;
+        endPoint(resultType, data.reason);
+        G.isNetworkReceiver = false; G.networkPointData = null;
     }
+
     if (data.type === 'SERVICE_SUCCESS') {
        log('🏐 O Saque do Oponente cruzou a rede...');
        G.aiAtkPow = data.power;
@@ -869,13 +883,7 @@ function setupConnectionHandlers(isHost) {
     }
     if (data.type === 'BLOCK_RESULT') {
        const card = CARDS_DB.find(c => c.id === data.cardId);
-       if (data.resultType === 'POINT_DIRECT') {
-         log(`🧱 O bloqueio ${card.name} do Oponente parou a bola! Ponto dele.`);
-         G.aPts++; G.nextServer = 'ai'; render(); endPoint('loss', 'Oponente marcou de bloqueio.');
-       } else if (data.resultType === 'OUT') {
-         log(`❌ O bloqueio ${card.name} do Oponente desviou a bola para fora! Ponto seu.`);
-         G.pPts++; G.nextServer = 'player'; render(); endPoint('win', 'Bloqueio do Oponente foi para fora.');
-       } else if (data.resultType === 'SOFTEN') {
+       if (data.resultType === 'SOFTEN') {
          log(`🧤 O bloqueio ${card.name} do Oponente amorteceu seu ataque.`);
        } else if (data.resultType === 'CONTINUE') {
          log(`🔁 O bloqueio ${card.name} do Oponente devolveu a bola fácil para você!`);
@@ -887,12 +895,6 @@ function setupConnectionHandlers(isHost) {
        G.possession = 'ai'; // É a vez dele jogar cartas
        G.locked = true;
        render();
-    }
-    if (data.type === 'DEFENSE_FAIL') {
-       log(`✅ O Oponente falhou na defesa (Poder: ${data.defPow}). A bola caiu! Ponto seu.`);
-       G.pPts++; G.nextServer = 'player';
-       render();
-       endPoint('win', 'Seu ataque superou a defesa do Oponente.');
     }
   });
 
