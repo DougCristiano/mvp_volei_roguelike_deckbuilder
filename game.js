@@ -18,6 +18,7 @@ const CARDS_DB=[
   {id:'def4',name:'Defesa Desesperada',type:'defense',cost:0,power:1,desc:'Grátis. Última esperança.',phases:['defense']},
   {id:'blk1',name:'Bloqueio Simples',type:'block',cost:1,power:2,desc:'Tenta parar o ataque na rede.',phases:['block']},
   {id:'blk2',name:'Paredão',type:'block',cost:2,power:4,desc:'Grande chance de ponto direto.',phases:['block']},
+  {id:'blk3',name:'Leitura de Bloqueio',type:'block',cost:1,power:3,desc:'Equilibrado. Boa chance de amortecer.',phases:['block']},
   {id:'sup1',name:'Foco',type:'support',cost:0,power:0,desc:'+2 Energia.',phases:['reception','setting','attack','defense'],bonus:'energy2'},
   {id:'sup2',name:'Comunicação',type:'support',cost:1,power:0,desc:'+1 carta.',phases:['reception','setting','attack','defense'],bonus:'draw1'},
 ];
@@ -34,6 +35,7 @@ function newGame(){
 function buildDeck(){
   let pool=[];CARDS_DB.forEach(c=>{pool.push({...c});pool.push({...c});});
   G.deck=shuffle(pool).slice(0,22);
+  G.deck=shuffle(pool); // Removido o limitador para garantir que todas as cartas existam
 }
 
 function shuffle(arr){let a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
