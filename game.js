@@ -728,8 +728,9 @@ btnStartAI.addEventListener('click', () => {
 
 btnStartMultiplayer.addEventListener('click', () => {
   btnStartAI.style.display = 'none';
-  btnStartMultiplayer.textContent = 'Criar Sala'; // Botão agora cria a sala
-  btnStartMultiplayer.disabled = true;
+  btnStartMultiplayer.textContent = 'Criando Sala...';
+  btnStartMultiplayer.disabled = true; // Desabilita APÓS o clique
+  connectionStatus.textContent = 'Aguardando conexão com o servidor...';
   multiplayerSetupUI.style.display = 'block';
   initializePeer();
 });
@@ -753,7 +754,8 @@ function initializePeer() {
   peer = new Peer();
   peer.on('open', id => {
     playerIdDisplay.textContent = id;
-    btnStartMultiplayer.disabled = false; // Habilita o botão "Criar Sala"
+    btnStartMultiplayer.textContent = 'Compartilhe seu ID';
+    connectionStatus.textContent = 'Sala criada! Aguardando conexão...';
   });
 
   peer.on('connection', (newConn) => {
@@ -764,7 +766,7 @@ function initializePeer() {
 
   peer.on('error', (err) => {
     console.error(err);
-    connectionStatus.textContent = `Erro: ${err.type}`;
+    connectionStatus.textContent = `Erro de conexão. Tente recarregar a página.`;
   });
 }
 
