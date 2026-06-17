@@ -40,15 +40,42 @@ function shuffle(arr){let a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.
 
 function resetDeck(){G.deck=[...G.deck,...G.hand,...G.discard];G.hand=[];G.discard=[];G.deck=shuffle(G.deck);}
 
-function drawCard(n=1){
-  for(let i=0;i<n;i++){
-    if(G.deck.length===0){if(G.discard.length===0)return;G.deck=shuffle([...G.discard]);G.discard=[];log('📦 Baralho reembaralhado.');}
-    if(G.deck.length>0)G.hand.push(G.deck.pop());
+function clearHand() {
+  G.discard.push(...G.hand);
+  G.hand = [];
+  G.selected = [];
+}
+
+function drawPhaseOptions() {
+  clearHand();
+  let phases = [];
+  if (G.blockWindow) phases = ['block'];
+  else if (G.defWindow) phases = ['defense', 'reception', 'support'];
+  else phases = [G.phase, 'support']; // Suporte pode vir junto nas fases normais
+
+  // O suporte não deve aparecer no saque nem no bloqueio
+  if (G.phase === 'service' || G.blockWindow) phases = phases.filter(p => p !== 'support');
+
+  let found = [];
+  // Procura 3 cartas válidas no baralho
+  for (let i = G.deck.length - 1; i >= 0 && found.length < 3; i--) {
+    if (G.deck[i].phases.some(p => phases.includes(p))) found.push(G.deck.splice(i, 1)[0]);
   }
+  // Se faltar carta, reembaralha o descarte e continua procurando
+  if (found.length < 3) {
+    let temp = G.deck;
+    G.deck = shuffle([...temp, ...G.discard]);
+    G.discard = [];
+    for (let i = G.deck.length - 1; i >= 0 && found.length < 3; i--) {
+      if (G.deck[i].phases.some(p => phases.includes(p))) found.push(G.deck.splice(i, 1)[0]);
+    }
+  }
+  G.hand = found;
+  if(G.hand.length === 0) log(`⚠ Nenhuma opção válida encontrada para ${phases[0]}.`);
 }
 
 function startPoint(){
-  resetDeck();drawCard(5);
+  resetDeck();
   G.energy=G.maxEnergy;G.phase='service';
   G.aiEnergy=G.maxAiEnergy;
   G.possession=G.nextServer || 'player';
@@ -59,10 +86,7 @@ function startPoint(){
 
   if(G.possession === 'player') {
     log('— Novo ponto. Seu saque —');
-    if(!G.hand.some(c=>c.phases.includes('service'))){
-      const si=G.deck.findIndex(c=>c.phases.includes('service'));
-      if(si>=0){const wi=G.hand.findIndex(c=>!c.phases.includes('service'));if(wi>=0){G.discard.push(G.hand[wi]);G.hand[wi]=G.deck.splice(si,1)[0];}}
-    }
+    drawPhaseOptions();
   } else {
     log('— Novo ponto. Saque da IA —');
     G.locked = true;
@@ -91,25 +115,59 @@ function selectCard(idx){
 function playCard(){
   if(G.selected.length===0||G.locked||G.pointDone)return;
   const idx=G.selected[0];const card=G.hand[idx];if(!card)return;
-  G.locked=true;G.energy-=card.cost;G.hand.splice(idx,1);G.discard.push(card);G.selected=[];
+  G.locked=true;G.energy-=card.cost;
   applyBonus(card);
   log(`✅ ${card.name} [${PHASE_NAMES[G.phase]}, poder ${card.power}]`);
   updateCombo(card);
+
+  if (card.type === 'support') {
+    clearHand();
+    drawPhaseOptions(); // Gera novas opções para a mesma fase
+    G.locked=false;
+    render();
+    return;
+  }
+
+  clearHand();
+
   if(G.phase==='service'){
     log('🏐 Saque realizado! A bola cruzou a rede...');
     G.phase='reception';
     render();
     setTimeout(() => passBall(true), 600);
   }
-  else if(G.phase==='reception'){G.phase='setting';log('🤲 Levantamento...');G.locked=false;checkFreeball();render();}
-  else if(G.phase==='setting'){G.phase='attack';log('💥 Prepare o ataque!');G.locked=false;checkFreeball();render();}
+  else if(G.phase==='reception'){G.phase='setting';log('🤲 Levantamento...');G.locked=false;drawPhaseOptions();checkFreeball();render();}
+  else if(G.phase==='setting'){G.phase='attack';log('💥 Prepare o ataque!');G.locked=false;drawPhaseOptions();checkFreeball();render();}
   else if(G.phase==='attack'){const total=card.power+G.atkBoost;G.atkBoost=0;log(`🏐 Ataque total ${total}!`);render();setTimeout(()=>resolvePlayerAttack(total),700);}
 }
 
-function buyCard(){
-  if(G.locked || G.pointDone || G.phase === 'service' || G.energy < 1) return;
-  G.energy-=1;drawCard(1);
-  log('🃏 Comprou 1 carta (-1 energia).');
+function rerollOption(){
+  if (G.locked || G.pointDone || G.energy < 1 || G.selected.length !== 1) return;
+  const idx = G.selected[0];
+  const discarded = G.hand.splice(idx, 1)[0];
+  G.discard.push(discarded);
+  G.energy -= 1;
+
+  let phases = [];
+  if (G.blockWindow) phases = ['block'];
+  else if (G.defWindow) phases = ['defense', 'reception', 'support'];
+  else phases = [G.phase, 'support'];
+  if (G.phase === 'service' || G.blockWindow) phases = phases.filter(p => p !== 'support');
+
+  let found = [];
+  for (let i = G.deck.length - 1; i >= 0 && found.length < 1; i--) {
+    if (G.deck[i].phases.some(p => phases.includes(p))) found.push(G.deck.splice(i, 1)[0]);
+  }
+  if (found.length < 1) {
+    let temp = G.deck; G.deck = shuffle([...temp, ...G.discard]); G.discard = [];
+    for (let i = G.deck.length - 1; i >= 0 && found.length < 1; i--) {
+      if (G.deck[i].phases.some(p => phases.includes(p))) found.push(G.deck.splice(i, 1)[0]);
+    }
+  }
+  
+  if (found.length > 0) G.hand.splice(idx, 0, found[0]); // Coloca na mesma posição
+  G.selected = [];
+  log('🔄 Reciclou 1 opção (-1 energia).');
   checkFreeball();render();
 }
 
@@ -118,7 +176,7 @@ function applyBonus(card){
   if(card.bonus==='energy1'){G.energy=Math.min(G.energy+1,G.maxEnergy);log('+1 Energia!');}
   if(card.bonus==='energy2'){G.energy=Math.min(G.energy+2,G.maxEnergy);log('+2 Energia!');}
   if(card.bonus==='atkBoost2'){G.atkBoost+=2;log('+2 poder no próximo ataque!');}
-  if(card.bonus==='draw1'){drawCard(1);log('+1 carta!');}
+  if(card.bonus==='draw1'){log('+1 Uso Livre! (Efeito de carta ignorado temporariamente)');} // Substituído pelo sistema de draft
   if(card.bonus==='aiDefMinus1'){G.aiDefMinus+=1;log('IA defende com -1!');}
 }
 
@@ -138,6 +196,7 @@ function checkFreeball(){
 function passBall(forced){
   if(G.pointDone)return;
   if(!forced)log('↩ Você passou a bola.');
+  clearHand();
   G.possession='ai';G.energy=Math.min(G.energy+1,G.maxEnergy);G.locked=true;render();
   G.aiEnergy=Math.min(G.aiEnergy+1,G.maxAiEnergy);
   setTimeout(()=>aiTurn(),900);
@@ -209,6 +268,7 @@ function aiTurn(){
     G.blockWindow=true;G.selected=[];G.phase='block';
     G.energy=Math.min(G.energy+1,G.maxEnergy);G.locked=false;
     log(`⚡ IA ataca com poder ${G.aiAtkPow}! Bloquear ou Deixar passar?`);
+    drawPhaseOptions();
     
     // Inicia Timer de Bloqueio (15 segundos para decisão)
     G.blockTimerVal = 15.0;
@@ -243,17 +303,16 @@ function resolveBlock(){
   const card = G.hand[idx];
   
   G.blockWindow = false;
-  G.selected = [];
 
   if(!card) {
     log("🏃 Você não bloqueou. Preparando defesa...");
+    clearHand();
     startDefenseWindow();
     return;
   }
 
   G.energy -= card.cost;
-  G.hand.splice(idx, 1);
-  G.discard.push(card);
+  clearHand();
 
   const roll = Math.random();
   if (roll < 0.20) { // 20% Ponto de bloqueio
@@ -278,6 +337,7 @@ function resolveBlock(){
 function startDefenseWindow(){
     G.defWindow=true; G.blockWindow=false; G.phase='defense';
     log(`🛡 Selecione sua defesa contra poder ${G.aiAtkPow}.`);
+    drawPhaseOptions();
     
     // Inicia Timer de Defesa (15 segundos)
     G.defTimerVal = 15.0;
@@ -312,18 +372,18 @@ function resolveDefense(){
   [...G.selected].sort((a,b)=>b-a).forEach(idx=>{
     const c=G.hand[idx];
     if(c&&(c.phases.includes('defense')||c.phases.includes('reception'))&&c.cost<=G.energy){
-      defPow+=c.power;G.energy-=c.cost;G.discard.push(c);G.hand.splice(idx,1);
+      defPow+=c.power;G.energy-=c.cost;
       log(`🛡 ${c.name} (poder ${c.power})`);
     }
   });
 
   if(G.selected.length > 0) G.comboIdx = 1; // A defesa/recepção conta como o 1º toque do combo
 
-  G.selected=[];G.defWindow=false;
+  clearHand();G.defWindow=false;
   log(`⚖ IA ${G.aiAtkPow} vs Defesa ${defPow}`);
   if(defPow>=G.aiAtkPow){
     log('✅ Defesa! Posse volta para você.');
-    G.possession='player';G.phase='setting';G.energy=Math.min(G.energy+1,G.maxEnergy);drawCard(1);G.locked=false;render();
+    G.possession='player';G.phase='setting';G.energy=Math.min(G.energy+1,G.maxEnergy);G.locked=false;drawPhaseOptions();render();
   } else {
     log(`❌ Ataque passou. Ponto para a IA.`);G.aPts++;
     G.nextServer = 'ai';
@@ -334,7 +394,7 @@ function resolveDefense(){
 function autoResolve(){
   if(!G.defWindow||G.pointDone)return;
   clearInterval(G.defInterval);
-  G.defWindow=false;G.selected=[];
+  G.defWindow=false;clearHand();
   log('⏱ Tempo! Defesa 0.');G.aPts++;
   G.nextServer = 'ai';
   endPoint('loss',`Tempo esgotado. IA atacou com ${G.aiAtkPow}, defesa 0.`);
@@ -459,7 +519,7 @@ function render(){
 
 function renderHand(){
   const c=document.getElementById('hand-cards');c.innerHTML='';
-  document.getElementById('hand-title').textContent=G.defWindow?'Mão — selecione cartas de defesa/recepção (pode acumular)':`Mão — ${G.hand.length} cartas`;
+  document.getElementById('hand-title').textContent=G.defWindow?'Opções de Defesa (pode acumular)':`Opções da Fase (${PHASE_NAMES[G.phase] || G.phase})`;
   G.hand.forEach((card,idx)=>{
     const playable=canPlay(card);const sel=G.selected.includes(idx);
     const blocked=!playable||(G.locked&&!G.defWindow);
@@ -490,26 +550,26 @@ function renderResolve(){
 
 function renderActions(){
   const bPlay=document.getElementById('btn-play');
-  const bDraw=document.getElementById('btn-draw');
+  const bDraw=document.getElementById('btn-reroll');
   const bPass=document.getElementById('btn-pass');
   const bRes=document.getElementById('btn-resolve');
   const bBlk=document.getElementById('btn-block');
+  
+  bDraw.textContent = "Trocar Carta (1⚡)";
+  bDraw.disabled = G.locked || G.energy < 1 || G.selected.length !== 1;
 
   if(G.defWindow){
     bPlay.style.display='none'; bBlk.style.display='none'; bDraw.style.display='block'; bPass.style.display='none'; bRes.style.display='block';
     bRes.disabled=G.selected.length===0;
-    bDraw.disabled=G.locked||G.energy<1;
   } else if(G.blockWindow){
     bPlay.style.display='none'; bRes.style.display='none'; bDraw.style.display='block'; bPass.style.display='block'; bBlk.style.display='block';
     bBlk.disabled=G.selected.length===0;
-    bDraw.disabled=G.locked||G.energy<1;
     bPass.textContent = "Não Bloquear";
     bPass.disabled=G.locked;
   } else {
     bPlay.style.display='block'; bBlk.style.display='none'; bDraw.style.display='block'; bPass.style.display='block'; bRes.style.display='none';
     bPass.textContent = "Passar Bola";
     bPlay.disabled=G.selected.length===0||G.locked;
-    bDraw.disabled=G.locked||G.phase==='service'||G.energy<1;
     bPass.disabled=G.locked||G.phase==='service'||G.possession!=='player';
   }
 }
@@ -520,7 +580,7 @@ function renderLog(){
 }
 
 document.getElementById('btn-play').addEventListener('click',playCard);
-document.getElementById('btn-draw').addEventListener('click',buyCard);
+document.getElementById('btn-reroll').addEventListener('click',rerollOption);
 document.getElementById('btn-pass').addEventListener('click',()=>{if(!G.locked&&!G.pointDone&&G.phase!=='service'){ if(G.blockWindow) resolveBlock(); else passBall(false); }});
 document.getElementById('btn-block').addEventListener('click',resolveBlock);
 document.getElementById('btn-resolve').addEventListener('click',resolveDefense);
