@@ -30,9 +30,26 @@ const CARDS_DB=[
 const PHASE_NAMES={service:'Saque',setting:'Levantamento',attack:'Ataque',defense:'Defesa',block:'Bloqueio'};
 const COMBO_SEQ=['defense','setting','attack'];
 let G={};
+let peer = null;
+let conn = null;
 
-function newGame(){
-  G={pPts:0,aPts:0,pSets:0,aSets:0,energy:10,maxEnergy:10,aiEnergy:10,maxAiEnergy:10,deck:[],hand:[],discard:[],phase:'service',possession:'player',nextServer:'player',comboIdx:0,atkBoost:0,aiDefMinus:0,aiAtkPow:0,selected:[],defWindow:false,blockWindow:false,locked:false,pointDone:false,log:[],blockTimerVal:0,blockInterval:null,defTimerVal:0,defInterval:null,aiJustDefended:false,isDefendingServe:false};
+// --- UI Element Selectors ---
+const mainMenu = document.getElementById('main-menu-overlay');
+const multiplayerSetupUI = document.getElementById('multiplayer-setup');
+const appUI = document.getElementById('app');
+const btnStartAI = document.getElementById('btn-start-ai');
+const btnStartMultiplayer = document.getElementById('btn-start-multiplayer');
+const btnConnect = document.getElementById('btn-connect-room');
+const playerIdDisplay = document.getElementById('player-id-display');
+const peerIdInput = document.getElementById('peer-id-input');
+const connectionStatus = document.getElementById('connection-status');
+
+function newGame(gameMode = 'ai', isHost = false){
+  G={
+    gameMode,
+    isHost,
+    pPts:0,aPts:0,pSets:0,aSets:0,energy:10,maxEnergy:10,aiEnergy:10,maxAiEnergy:10,deck:[],hand:[],discard:[],phase:'service',possession:'player',nextServer:'player',comboIdx:0,atkBoost:0,aiDefMinus:0,aiAtkPow:0,selected:[],defWindow:false,blockWindow:false,locked:false,pointDone:false,log:[],blockTimerVal:0,blockInterval:null,defTimerVal:0,defInterval:null,aiJustDefended:false,isDefendingServe:false
+  };
   buildDeck();startPoint();
 }
 
@@ -223,7 +240,11 @@ function passBall(forced, isServe = false){
   }
   clearHand();
   G.possession='ai';G.locked=true;render();
-  setTimeout(()=>aiTurn(),900);
+  if (G.gameMode === 'ai') {
+    setTimeout(() => aiTurn(), 900);
+  } else {
+    // TODO: Enviar ação 'passBall' para o oponente
+  }
 }
 
 function aiTurn(){
@@ -484,7 +505,11 @@ function resolvePlayerAttack(pow){
   } else {
     log(`❌ A IA defendeu seu ataque com sucesso! A posse passou.`);
     G.possession='ai';G.locked=false;render();
-    setTimeout(()=>aiTurn(),900);
+    if (G.gameMode === 'ai') {
+      setTimeout(() => aiTurn(), 900);
+    } else {
+      // TODO: Enviar ação 'resolvePlayerAttack' para o oponente
+    }
   }
 }
 
@@ -524,7 +549,7 @@ function showPointResult(type,title,desc){
 
 function hidePointResult(){
   document.getElementById('point-result').style.display='none';
-  document.getElementById('action-area').style.display='flex';
+  document.getElementById('action-area').style.display='grid';
   document.getElementById('hand-area').style.display='flex';
 }
 
@@ -653,6 +678,7 @@ function renderLog(){
   document.getElementById('log-area').innerHTML=G.log.slice(0,12).map(l=>`<div class="log-entry">${l}</div>`).join('');
 }
 
+// --- Event Listeners ---
 document.getElementById('btn-play').addEventListener('click',playCard);
 document.getElementById('btn-reroll').addEventListener('click',rerollOption);
 document.getElementById('btn-pass').addEventListener('click',()=>{if(!G.locked&&!G.pointDone&&G.phase!=='service'){ if(G.blockWindow) resolveBlock(); else passBall(false); }});
@@ -661,4 +687,81 @@ document.getElementById('btn-resolve').addEventListener('click',resolveDefense);
 document.getElementById('btn-next').addEventListener('click',startPoint);
 document.getElementById('overlay-btn').addEventListener('click',()=>{document.getElementById('overlay').style.display='none';newGame();});
 
-newGame();
+// --- Main Menu & Multiplayer Logic ---
+appUI.style.display = 'none'; // Esconde o jogo ao iniciar
+
+btnStartAI.addEventListener('click', () => {
+  mainMenu.style.display = 'none';
+  appUI.style.display = 'flex';
+  newGame('ai');
+});
+
+btnStartMultiplayer.addEventListener('click', () => {
+  btnStartAI.style.display = 'none';
+  btnStartMultiplayer.textContent = 'Criar Sala'; // Botão agora cria a sala
+  btnStartMultiplayer.disabled = true;
+  multiplayerSetupUI.style.display = 'block';
+  initializePeer();
+});
+
+btnConnect.addEventListener('click', () => {
+  const remoteId = peerIdInput.value.trim();
+  if (remoteId && peer) {
+    connectToPeer(remoteId);
+  }
+});
+
+playerIdDisplay.addEventListener('click', () => {
+  if (playerIdDisplay.textContent.includes('Carregando')) return;
+  navigator.clipboard.writeText(playerIdDisplay.textContent).then(() => {
+    connectionStatus.textContent = 'ID copiado!';
+    setTimeout(() => connectionStatus.textContent = '', 2000);
+  });
+});
+
+function initializePeer() {
+  peer = new Peer();
+  peer.on('open', id => {
+    playerIdDisplay.textContent = id;
+    btnStartMultiplayer.disabled = false; // Habilita o botão "Criar Sala"
+  });
+
+  peer.on('connection', (newConn) => {
+    if (conn && conn.open) { newConn.close(); return; }
+    conn = newConn;
+    setupConnectionHandlers(true); // Sou o host
+  });
+
+  peer.on('error', (err) => {
+    console.error(err);
+    connectionStatus.textContent = `Erro: ${err.type}`;
+  });
+}
+
+function connectToPeer(remoteId) {
+  connectionStatus.textContent = `Conectando a ${remoteId}...`;
+  conn = peer.connect(remoteId);
+  setupConnectionHandlers(false); // Sou o cliente
+}
+
+function setupConnectionHandlers(isHost) {
+  conn.on('open', () => {
+    connectionStatus.textContent = `Conectado a ${conn.peer}!`;
+    setTimeout(() => {
+        mainMenu.style.display = 'none';
+        appUI.style.display = 'flex';
+        newGame('multiplayer', isHost);
+    }, 1500);
+  });
+
+  conn.on('data', (data) => {
+    console.log('Ação recebida:', data);
+    // TODO: Lógica para processar as jogadas do oponente
+  });
+
+  conn.on('close', () => {
+    // TODO: Mostrar overlay de desconexão
+    alert('O oponente desconectou.');
+    window.location.reload();
+  });
+}

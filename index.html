@@ -79,7 +79,8 @@
   </div>
 
   <div id="log-area"></div>
-</div>
+</div> <!-- Fim do #app -->
+
 <div id="overlay">
   <div id="overlay-box">
     <div id="overlay-title"></div>
@@ -87,6 +88,25 @@
     <button class="btn btn-primary" id="overlay-btn" style="width:100%;margin-top:4px">Novo Jogo</button>
   </div>
 </div>
+
+<div id="main-menu-overlay">
+  <div id="main-menu-box">
+    <div id="main-menu-title">ASCENSION</div>
+    <div id="main-menu-subtitle">beach volleyball deckbuilder</div>
+    <button class="btn btn-primary" id="btn-start-ai">Jogar contra IA</button>
+    <button class="btn btn-secondary" id="btn-start-multiplayer">Multiplayer (Online)</button>
+    <div id="multiplayer-setup" style="display:none;">
+      <p>Seu ID de Jogador:</p>
+      <div id="player-id-display" title="Clique para copiar">Carregando...</div>
+      <p>Para jogar, crie uma sala e compartilhe seu ID, ou insira o ID de um amigo e conecte-se.</p>
+      <input type="text" id="peer-id-input" placeholder="Insira o ID do amigo">
+      <button class="btn btn-secondary" id="btn-connect-room">Conectar</button>
+      <p id="connection-status"></p>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peer.min.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
