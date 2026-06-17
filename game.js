@@ -1,26 +1,30 @@
 const CARDS_DB=[
-  {id:'srv1',name:'Saque Flutuante',type:'service',cost:1,power:2,desc:'Difícil de receber.',phases:['service']},
-  {id:'srv2',name:'Saque Potente',type:'service',cost:2,power:4,desc:'Agressivo. Dificulta a recepção adversária.',phases:['service']},
+  {id:'srv1',name:'Saque Flutuante',type:'service',cost:1,power:3,desc:'Equilibrado e seguro.',phases:['service']},
+  {id:'srv2',name:'Saque Potente',type:'service',cost:2,power:5,desc:'Agressivo. Dificulta a recepção.',phases:['service']},
   {id:'srv3',name:'Saque Tático',type:'service',cost:0,power:1,desc:'Controlado. Guarda energia.',phases:['service']},
-  {id:'rec1',name:'Manchete Firme',type:'defense',cost:1,power:3,desc:'Defesa estável.',phases:['defense']},
-  {id:'rec2',name:'Mergulho',type:'defense',cost:1,power:2,desc:'Salva bolas difíceis.',phases:['defense']},
-  {id:'rec3',name:'Leitura de Jogo',type:'defense',cost:2,power:4,desc:'+1 Energia.',phases:['defense'],bonus:'energy1'},
-  {id:'set1',name:'Levantamento Alto',type:'setting',cost:1,power:3,desc:'Abre o ataque.',phases:['setting']},
-  {id:'set2',name:'Levantamento Rápido',type:'setting',cost:2,power:5,desc:'+2 poder no próximo ataque.',phases:['setting'],bonus:'atkBoost2'},
-  {id:'set3',name:'Levantamento de Costas',type:'setting',cost:1,power:2,desc:'Engana o bloqueio.',phases:['setting']},
-  {id:'atk1',name:'Cortada Diagonal',type:'attack',cost:2,power:5,desc:'Alto poder.',phases:['attack']},
-  {id:'atk2',name:'Ponta Aberta',type:'attack',cost:1,power:3,desc:'Ataque nas bordas.',phases:['attack']},
-  {id:'atk3',name:'Bola na Linha',type:'attack',cost:3,power:7,desc:'Alto risco, alta recompensa.',phases:['attack']},
-  {id:'atk4',name:'Finta',type:'attack',cost:1,power:2,desc:'IA defende com -1.',phases:['attack'],bonus:'aiDefMinus1'},
-  {id:'def1',name:'Defesa de Plataforma',type:'defense',cost:1,power:3,desc:'Sólida e confiável.',phases:['defense']},
-  {id:'def2',name:'Bloco Antecipado',type:'defense',cost:2,power:5,desc:'Reduz o ataque adversário.',phases:['defense']},
-  {id:'def3',name:'Leitura do Ataque',type:'defense',cost:1,power:4,desc:'Boa leitura recompensa.',phases:['defense']},
-  {id:'def4',name:'Defesa Desesperada',type:'defense',cost:0,power:1,desc:'Grátis. Última esperança.',phases:['defense']},
-  {id:'blk1',name:'Bloqueio Simples',type:'block',cost:1,power:2,desc:'Tenta parar o ataque na rede.',phases:['block']},
-  {id:'blk2',name:'Paredão',type:'block',cost:2,power:4,desc:'Grande chance de ponto direto.',phases:['block']},
-  {id:'blk3',name:'Leitura de Bloqueio',type:'block',cost:1,power:3,desc:'Equilibrado. Boa chance de amortecer.',phases:['block']},
+  
+  {id:'def1',name:'Manchete Firme',type:'defense',cost:1,power:4,desc:'Defesa estável.',phases:['defense']},
+  {id:'def2',name:'Mergulho',type:'defense',cost:0,power:2,desc:'Grátis. Salva bolas.',phases:['defense']},
+  {id:'def3',name:'Leitura de Jogo',type:'defense',cost:2,power:4,desc:'+2 Energia.',phases:['defense'],bonus:'energy2'},
+  {id:'def4',name:'Posicionamento Perfeito',type:'defense',cost:2,power:7,desc:'Forte absorção de impacto.',phases:['defense']},
+  {id:'def5',name:'Defesa de Manchete',type:'defense',cost:1,power:5,desc:'Boa leitura do ataque.',phases:['defense']},
+  {id:'def6',name:'Defesa Heroica',type:'defense',cost:3,power:10,desc:'Defesa espetacular contra cravadas.',phases:['defense']},
+
+  {id:'set1',name:'Levantamento Alto',type:'setting',cost:1,power:0,desc:'+3 poder no ataque.',phases:['setting'],bonus:'atkBoost3'},
+  {id:'set2',name:'Levantamento Rápido',type:'setting',cost:2,power:0,desc:'+6 poder no ataque.',phases:['setting'],bonus:'atkBoost6'},
+  {id:'set3',name:'Levantamento de Costas',type:'setting',cost:1,power:0,desc:'Engana bloqueio (-2 def IA).',phases:['setting'],bonus:'aiDefMinus2'},
+  
+  {id:'atk1',name:'Cortada Diagonal',type:'attack',cost:2,power:6,desc:'Alto poder.',phases:['attack']},
+  {id:'atk2',name:'Ponta Aberta',type:'attack',cost:1,power:3,desc:'Ataque eficiente.',phases:['attack']},
+  {id:'atk3',name:'Bola na Linha',type:'attack',cost:3,power:9,desc:'Poder massivo.',phases:['attack']},
+  {id:'atk4',name:'Finta',type:'attack',cost:1,power:2,desc:'IA defende com -2.',phases:['attack'],bonus:'aiDefMinus2'},
+  
+  {id:'blk1',name:'Bloqueio Simples',type:'block',cost:1,power:3,desc:'Tenta parar o ataque na rede.',phases:['block']},
+  {id:'blk2',name:'Paredão',type:'block',cost:2,power:6,desc:'Grande chance de ponto direto.',phases:['block']},
+  {id:'blk3',name:'Leitura de Bloqueio',type:'block',cost:1,power:4,desc:'Equilibrado. Boa chance de amortecer.',phases:['block']},
+  
   {id:'sup1',name:'Foco',type:'support',cost:0,power:0,desc:'+2 Energia.',phases:['defense','setting','attack'],bonus:'energy2'},
-  {id:'sup2',name:'Comunicação',type:'support',cost:1,power:0,desc:'+1 carta.',phases:['defense','setting','attack'],bonus:'draw1'},
+  {id:'sup2',name:'Comunicação',type:'support',cost:1,power:0,desc:'+1 Uso Livre.',phases:['defense','setting','attack'],bonus:'draw1'},
 ];
 
 const PHASE_NAMES={service:'Saque',setting:'Levantamento',attack:'Ataque',defense:'Defesa',block:'Bloqueio'};
@@ -38,6 +42,7 @@ function buildDeck(){
   types.forEach(t => {
     const typeCards = CARDS_DB.filter(c => c.type === t);
     for(let i=0; i<6; i++) pool.push({...typeCards[i % typeCards.length]});
+    for(let i=0; i<7; i++) pool.push({...typeCards[i % typeCards.length]});
   });
   G.deck=shuffle(pool);
 }
@@ -182,8 +187,11 @@ function applyBonus(card){
   if(card.bonus==='energy1'){G.energy=Math.min(G.energy+1,G.maxEnergy);log('+1 Energia!');}
   if(card.bonus==='energy2'){G.energy=Math.min(G.energy+2,G.maxEnergy);log('+2 Energia!');}
   if(card.bonus==='atkBoost2'){G.atkBoost+=2;log('+2 poder no próximo ataque!');}
+  if(card.bonus==='atkBoost3'){G.atkBoost+=3;log('+3 poder no próximo ataque!');}
+  if(card.bonus==='atkBoost6'){G.atkBoost+=6;log('+6 poder no próximo ataque!');}
   if(card.bonus==='draw1'){log('+1 Uso Livre! (Efeito de carta ignorado temporariamente)');} // Substituído pelo sistema de draft
   if(card.bonus==='aiDefMinus1'){G.aiDefMinus+=1;log('IA defende com -1!');}
+  if(card.bonus==='aiDefMinus2'){G.aiDefMinus+=2;log('IA defende com -2!');}
 }
 
 function updateCombo(card){
@@ -254,6 +262,10 @@ function aiTurn(){
       let setPlay = getAIPlay('setting', G.aiEnergy - aiCost);
       if (setPlay.drew) { aiCost += setPlay.drawCost; aiCards.push("🃏 Comprou"); }
       if (setPlay.card) { aiCost += setPlay.card.cost; aiCards.push(setPlay.card.name); comboCount++; if(setPlay.card.bonus === 'atkBoost2') atkBoost += 2; }
+      if (setPlay.card) { 
+        aiCost += setPlay.card.cost; aiCards.push(setPlay.card.name); comboCount++; 
+        if(setPlay.card.bonus && setPlay.card.bonus.startsWith('atkBoost')) atkBoost += parseInt(setPlay.card.bonus.replace('atkBoost', '')); 
+      }
 
       let atkPlay = getAIPlay('attack', G.aiEnergy - aiCost);
       if (atkPlay.drew) { aiCost += atkPlay.drawCost; aiCards.push("🃏 Comprou"); }
