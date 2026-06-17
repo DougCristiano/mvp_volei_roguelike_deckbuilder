@@ -634,6 +634,7 @@ function resolvePlayerAttack(pow){
 }
 
 function endPoint(result,desc){
+  if(G.pointDone)return;
   G.pointDone=true;G.locked=true;clearInterval(G.blockInterval);clearInterval(G.defInterval);
   if(result==='win') sounds.pointScored(); else sounds.error();
   checkSet(result,desc);
@@ -642,6 +643,20 @@ function endPoint(result,desc){
 function checkSet(result,desc){
   const WIN=5;
   const oppNameCap = G.gameMode === 'multiplayer' ? 'Oponente' : 'IA';
+  if(G.gameMode==='multiplayer'&&!G.isNetworkReceiver){
+    const myRole=G.isHost?'host':'client';
+    const oppRole=G.isHost?'client':'host';
+    sendData({
+      type:'POINT_END',
+      winnerRole:result==='win'?myRole:oppRole,
+      hostPts:G.isHost?G.pPts:G.aPts,
+      clientPts:G.isHost?G.aPts:G.pPts,
+      hostSets:G.isHost?G.pSets:G.aSets,
+      clientSets:G.isHost?G.aSets:G.pSets,
+      nextServerRole:G.nextServer==='player'?myRole:oppRole,
+      reason:desc||''
+    });
+  }
   if(G.pPts>=WIN&&G.pPts-G.aPts>=2){
     G.pSets++;G.pPts=0;G.aPts=0;
     if(G.pSets>=1){render();showEnd(true);return;}
@@ -911,7 +926,12 @@ function setupConnectionHandlers(isHost) {
          render();
        }
     }
-    
+    if (data.type === 'SERVICE_ERROR') {
+       if (G.pointDone) return;
+       log(`🎉 O saque do Oponente bateu na rede! Ponto seu.`);
+       G.pPts++; G.nextServer = 'player';
+       endPoint('win', 'Erro de saque do adversário.');
+    }
     if (data.type === 'POINT_END') {
         const myRole = G.isHost ? 'host' : 'client';
         const iWon = data.winnerRole === myRole;
@@ -971,10 +991,12 @@ function setupConnectionHandlers(isHost) {
        const card = CARDS_DB.find(c => c.id === data.cardId);
        const cName = card ? card.name : '';
        if (data.resultType === 'POINT_DIRECT') {
+         if (G.pointDone) return;
          log(`🧱 O bloqueio ${cName} do Oponente parou a bola! Ponto do Oponente.`);
          G.aPts++; G.nextServer = 'ai';
          endPoint('loss', 'Bloqueio direto do adversário.');
        } else if (data.resultType === 'OUT') {
+         if (G.pointDone) return;
          log(`✅ O bloqueio do Oponente foi para fora! Ponto seu!`);
          G.pPts++; G.nextServer = 'player';
          endPoint('win', 'Bloqueio fora do adversário.');
@@ -982,20 +1004,29 @@ function setupConnectionHandlers(isHost) {
          log(`🧤 O bloqueio ${cName} do Oponente amorteceu seu ataque.`);
        } else if (data.resultType === 'CONTINUE') {
          log(`🔁 O bloqueio ${cName} do Oponente devolveu a bola fácil para você!`);
-         G.possession = 'player'; G.phase = 'defense'; G.locked = false; drawPhaseOptions(); render();
+         G.possession = 'player'; G.locked = false;
+         startDefenseWindow(false);
        }
     }
     if (data.type === 'DEFENSE_SUCCESS') {
        log(`🛡️ O Oponente defendeu o ataque com poder ${data.defPow}! A posse passou.`);
-       G.possession = 'ai'; // É a vez dele jogar cartas
+       G.possession = 'ai';
        G.locked = true;
        render();
+    }
+    if (data.type === 'DEFENSE_FAIL') {
+       if (G.pointDone) return;
+       const pow = data.defPow !== undefined ? data.defPow : 0;
+       log(`✅ O Oponente não conseguiu defender (Def: ${pow}). Ponto seu!`);
+       G.pPts++; G.nextServer = 'player';
+       endPoint('win', `Ataque superou a defesa do adversário.`);
     }
   });
 
   conn.on('close', () => {
-    // TODO: Mostrar overlay de desconexão
-    alert('O oponente desconectou.');
-    window.location.reload();
+    document.getElementById('overlay-title').textContent = '🔌 Desconectado';
+    document.getElementById('overlay-msg').textContent = 'O oponente se desconectou da partida.';
+    document.getElementById('overlay-btn').textContent = 'Novo Jogo';
+    document.getElementById('overlay').style.display = 'flex';
   });
 }
