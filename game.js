@@ -12,12 +12,12 @@ const CARDS_DB=[
 
   {id:'set1',name:'Levantamento Alto',type:'setting',cost:1,power:0,desc:'+3 poder no ataque.',phases:['setting'],bonus:'atkBoost3'},
   {id:'set2',name:'Levantamento Rápido',type:'setting',cost:2,power:0,desc:'+6 poder no ataque.',phases:['setting'],bonus:'atkBoost6'},
-  {id:'set3',name:'Levantamento de Costas',type:'setting',cost:1,power:0,desc:'Engana bloqueio (-2 def IA).',phases:['setting'],bonus:'aiDefMinus2'},
+  {id:'set3',name:'Levantamento de Costas',type:'setting',cost:1,power:0,desc:'Engana bloqueio (-2 def Adv.).',phases:['setting'],bonus:'aiDefMinus2'},
   
   {id:'atk1',name:'Cortada Diagonal',type:'attack',cost:2,power:6,desc:'Alto poder.',phases:['attack']},
   {id:'atk2',name:'Ponta Aberta',type:'attack',cost:1,power:3,desc:'Ataque eficiente.',phases:['attack']},
   {id:'atk3',name:'Bola na Linha',type:'attack',cost:3,power:9,desc:'Poder massivo.',phases:['attack']},
-  {id:'atk4',name:'Finta',type:'attack',cost:1,power:2,desc:'IA defende com -2.',phases:['attack'],bonus:'aiDefMinus2'},
+  {id:'atk4',name:'Finta',type:'attack',cost:1,power:2,desc:'Adv. defende com -2.',phases:['attack'],bonus:'aiDefMinus2'},
   
   {id:'blk1',name:'Bloqueio Simples',type:'block',cost:1,power:3,desc:'Tenta parar o ataque na rede.',phases:['block']},
   {id:'blk2',name:'Paredão',type:'block',cost:2,power:6,desc:'Grande chance de ponto direto.',phases:['block']},
@@ -45,7 +45,10 @@ const peerIdInput = document.getElementById('peer-id-input');
 const connectionStatus = document.getElementById('connection-status');
 
 function sendData(data) {
-  if (conn && conn.open) conn.send(data);
+  if (conn && conn.open) {
+    data.energy = G.energy; // Sincroniza a energia embutindo em todos os pacotes
+    conn.send(data);
+  }
 }
 
 function newGame(gameMode = 'ai', isHost = false){
@@ -59,6 +62,8 @@ function newGame(gameMode = 'ai', isHost = false){
   };
   const aiLabel = document.getElementById('ai-label');
   if (aiLabel) aiLabel.textContent = gameMode === 'multiplayer' ? 'Oponente' : 'IA';
+  const atkLabel = document.getElementById('atk-label');
+  if (atkLabel) atkLabel.textContent = gameMode === 'multiplayer' ? 'Ataque Oponente' : 'Ataque IA';
   buildDeck();startPoint();
 }
 
@@ -198,6 +203,8 @@ function rerollOption(){
   const discarded = G.hand.splice(idx, 1)[0];
   G.discard.push(discarded);
   G.energy -= 1;
+  
+  if (G.gameMode === 'multiplayer') sendData({ type: 'REROLL' });
 
   let phases = [];
   if (G.blockWindow) phases = ['block'];
@@ -230,8 +237,8 @@ function applyBonus(card){
   if(card.bonus==='atkBoost3'){G.atkBoost+=3;log('+3 poder no próximo ataque!');}
   if(card.bonus==='atkBoost6'){G.atkBoost+=6;log('+6 poder no próximo ataque!');}
   if(card.bonus==='draw1'){log('+1 Uso Livre! (Efeito de carta ignorado temporariamente)');} // Substituído pelo sistema de draft
-  if(card.bonus==='aiDefMinus1'){G.aiDefMinus+=1;log('IA defende com -1!');}
-  if(card.bonus==='aiDefMinus2'){G.aiDefMinus+=2;log('IA defende com -2!');}
+  if(card.bonus==='aiDefMinus1'){G.aiDefMinus+=1;log(`${G.gameMode==='multiplayer'?'Oponente':'IA'} defende com -1!`);}
+  if(card.bonus==='aiDefMinus2'){G.aiDefMinus+=2;log(`${G.gameMode==='multiplayer'?'Oponente':'IA'} defende com -2!`);}
 }
 
 function updateCombo(card){
@@ -242,7 +249,7 @@ function updateCombo(card){
 
 function checkFreeball(){
   if(G.energy===0&&!G.defWindow&&G.phase!=='service'&&G.possession==='player'){
-    log('⚠ Energia zerada! Bola livre para a IA.');G.locked=true;
+    log(`⚠ Energia zerada! Bola livre para ${G.gameMode==='multiplayer'?'o Oponente':'a IA'}.`);G.locked=true;
     setTimeout(()=>{G.locked=false;passBall(true);},600);
   }
 }
@@ -548,6 +555,7 @@ function endPoint(result,desc){
 
 function checkSet(result,desc){
   const WIN=5;
+  const oppNameCap = G.gameMode === 'multiplayer' ? 'Oponente' : 'IA';
   if(G.pPts>=WIN&&G.pPts-G.aPts>=2){
     G.pSets++;G.pPts=0;G.aPts=0;
     if(G.pSets>=1){render();showEnd(true);return;}
@@ -557,12 +565,11 @@ function checkSet(result,desc){
   if(G.aPts>=WIN&&G.aPts-G.pPts>=2){
     G.aSets++;G.pPts=0;G.aPts=0;
     if(G.aSets>=1){render();showEnd(false);return;}
-    log(`💔 Set para a IA! ${G.pSets}×${G.aSets}`);
-    render();showPointResult('loss','💔 Set para a IA',`IA venceu o set. Placar: ${G.pSets}×${G.aSets}`);return;
+    render();showPointResult('loss',`💔 Set para ${oppNameCap}`,`${oppNameCap} venceu o set. Placar: ${G.pSets}×${G.aSets}`);return;
   }
   render();
   if(result==='win')showPointResult('win','🎉 Ponto seu!',desc||'Você venceu o rally.');
-  else showPointResult('loss','❌ Ponto da IA',desc||'IA venceu o rally.');
+  else showPointResult('loss',`❌ Ponto d${G.gameMode==='multiplayer'?'o Oponente':'a IA'}`,desc||`${oppNameCap} venceu o rally.`);
 }
 
 function showPointResult(type,title,desc){
@@ -582,10 +589,11 @@ function hidePointResult(){
 }
 
 function showEnd(won){
+  const oppNameCap = G.gameMode === 'multiplayer' ? 'Oponente' : 'IA';
   document.getElementById('overlay-title').textContent=won?'🏆 Vitória!':'💔 Derrota';
   document.getElementById('overlay-msg').textContent=won
     ?`Você venceu! ${G.pSets}×${G.aSets} em sets.`
-    :`IA venceu. ${G.aSets}×${G.pSets} em sets.`;
+    :`${oppNameCap} venceu. ${G.aSets}×${G.pSets} em sets.`;
   document.getElementById('overlay').style.display='flex';
 }
 
@@ -788,10 +796,17 @@ function setupConnectionHandlers(isHost) {
 
   conn.on('data', (data) => {
     console.log('Ação recebida:', data);
+    
+    // Espelha a energia matematicamente sempre que qualquer ação é recebida
+    if (data.energy !== undefined) G.aiEnergy = data.energy;
+
+    if (data.type === 'REROLL') {
+       log(`🧑‍💻 Oponente trocou uma carta (-1⚡).`);
+       render();
+    }
     if (data.type === 'PLAY_CARD') {
        const card = CARDS_DB.find(c => c.id === data.cardId);
        if (card) {
-         G.aiEnergy -= card.cost;
          log(`🧑‍💻 Oponente jogou: ${card.name} (Gasto ${card.cost}⚡)`);
          render();
        }
