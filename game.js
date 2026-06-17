@@ -757,17 +757,42 @@ function initializePeer() {
     btnStartMultiplayer.textContent = 'Compartilhe seu ID';
     connectionStatus.textContent = 'Sala criada! Aguardando conexão...';
   });
+  try {
+    // Gera um ID curto de 6 caracteres direto no cliente (ex: AB39XQ)
+    const shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
+    peer = new Peer(shortId);
 
   peer.on('connection', (newConn) => {
     if (conn && conn.open) { newConn.close(); return; }
     conn = newConn;
     setupConnectionHandlers(true); // Sou o host
   });
+    peer.on('open', id => {
+      playerIdDisplay.textContent = id;
+      btnStartMultiplayer.textContent = 'Compartilhe seu ID';
+      connectionStatus.textContent = 'Sala criada! Aguardando conexão...';
+    });
 
   peer.on('error', (err) => {
     console.error(err);
     connectionStatus.textContent = `Erro de conexão. Tente recarregar a página.`;
   });
+    peer.on('connection', (newConn) => {
+      if (conn && conn.open) { newConn.close(); return; }
+      conn = newConn;
+      setupConnectionHandlers(true); // Sou o host
+    });
+
+    peer.on('error', (err) => {
+      console.error(err);
+      playerIdDisplay.textContent = 'Falha!';
+      connectionStatus.textContent = `Erro: Servidor de conexão bloqueado ou indisponível.`;
+    });
+  } catch (e) {
+    console.error(e);
+    playerIdDisplay.textContent = 'Erro!';
+    connectionStatus.textContent = 'Não foi possível iniciar o serviço de rede.';
+  }
 }
 
 function connectToPeer(remoteId) {
