@@ -504,6 +504,7 @@ function renderActions(){
     bBlk.disabled=G.selected.length===0;
     bDraw.disabled=G.locked||G.energy<1;
     bPass.textContent = "Não Bloquear";
+    bPass.disabled=G.locked;
   } else {
     bPlay.style.display='block'; bBlk.style.display='none'; bDraw.style.display='block'; bPass.style.display='block'; bRes.style.display='none';
     bPass.textContent = "Passar Bola";
