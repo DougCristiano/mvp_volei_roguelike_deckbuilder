@@ -33,6 +33,47 @@ let G={};
 let peer = null;
 let conn = null;
 
+// --- Sistema de Áudio ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+const playSound = (freq, duration, type='sine') => {
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = freq;
+    osc.type = type;
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + duration);
+  } catch(e) {}
+};
+
+const sounds = {
+  cardPlay: () => {
+    playSound(523, 0.1);
+    setTimeout(() => playSound(659, 0.1), 50);
+  },
+  pointScored: () => {
+    playSound(800, 0.2);
+    setTimeout(() => playSound(600, 0.3), 100);
+  },
+  aiTurn: () => playSound(400, 0.15),
+  block: () => {
+    playSound(700, 0.08);
+    setTimeout(() => playSound(700, 0.08), 60);
+  },
+  combo: () => {
+    playSound(600, 0.1);
+    setTimeout(() => playSound(800, 0.1), 80);
+    setTimeout(() => playSound(1000, 0.1), 160);
+  },
+  error: () => playSound(200, 0.2, 'square'),
+  energy: () => playSound(880, 0.05),
+};
+
 // --- UI Element Selectors ---
 const mainMenu = document.getElementById('main-menu-overlay');
 const multiplayerSetupUI = document.getElementById('multiplayer-setup');
@@ -62,6 +103,14 @@ function newGame(gameMode = 'ai', isHost = false){
   };
   const aiLabel = document.getElementById('ai-label');
   if (aiLabel) aiLabel.textContent = gameMode === 'multiplayer' ? 'Oponente' : 'IA';
+  const playerLabel = document.getElementById('player-label');
+  if (playerLabel) {
+    if (gameMode === 'multiplayer' && isHost) {
+      playerLabel.textContent = 'Host';
+    } else {
+      playerLabel.textContent = 'Você';
+    }
+  }
   const atkLabel = document.getElementById('atk-label');
   if (atkLabel) atkLabel.textContent = gameMode === 'multiplayer' ? 'Ataque Oponente' : 'Ataque IA';
   buildDeck();startPoint();
@@ -158,7 +207,16 @@ function selectCard(idx){
 function playCard(){
   if(G.selected.length===0||G.locked||G.pointDone)return;
   const idx=G.selected[0];const card=G.hand[idx];if(!card)return;
-  G.locked=true;G.energy-=card.cost;
+  
+  // Animação de carta voando
+  const cardEl = document.querySelectorAll('.card')[idx];
+  if(cardEl) {
+    cardEl.style.animation = 'cardFlying 0.6s ease-in-out forwards';
+  }
+  
+  G.locked=true;
+  sounds.cardPlay();
+  G.energy-=card.cost;
   applyBonus(card);
   log(`✅ ${card.name} [${PHASE_NAMES[G.phase]}, poder ${card.power}]`);
   updateCombo(card);
@@ -243,7 +301,7 @@ function applyBonus(card){
 
 function updateCombo(card){
   if(card.type==='support')return;
-  if(G.comboIdx<COMBO_SEQ.length&&card.type===COMBO_SEQ[G.comboIdx]){G.comboIdx++;if(G.comboIdx===COMBO_SEQ.length){G.atkBoost+=2;log('🔥 COMBO! +2 poder bônus!');}}
+  if(G.comboIdx<COMBO_SEQ.length&&card.type===COMBO_SEQ[G.comboIdx]){G.comboIdx++;if(G.comboIdx===COMBO_SEQ.length){sounds.combo();G.atkBoost+=2;log('🔥 COMBO! +2 poder bônus!');}}
   else if(card.type!=='service'){G.comboIdx=0;}
 }
 
@@ -271,6 +329,7 @@ function passBall(forced, isServe = false){
 
 function aiTurn(){
   if(G.pointDone)return;
+  sounds.aiTurn();
   log('🤖 IA preparando jogada...');render();
   setTimeout(()=>{
     function getAIPlay(phase, maxCost) {
@@ -384,6 +443,8 @@ function tickBlockTimer() {
   }
   const bar = document.getElementById('timer-bar');
   if (bar) bar.style.width = (G.blockTimerVal / 15.0 * 100) + "%";
+  const count = document.getElementById('timer-count');
+  if (count) count.textContent = Math.ceil(G.blockTimerVal);
 }
 
 function resolveBlock(){
@@ -402,6 +463,7 @@ function resolveBlock(){
     return;
   }
 
+  sounds.block();
   G.energy -= card.cost;
   clearHand();
 
@@ -467,6 +529,8 @@ function tickDefTimer() {
   }
   const bar = document.getElementById('timer-bar');
   if (bar) bar.style.width = (G.defTimerVal / 15.0 * 100) + "%";
+  const count = document.getElementById('timer-count');
+  if (count) count.textContent = Math.ceil(G.defTimerVal);
 }
 
 function resolveDefense(){
@@ -557,6 +621,7 @@ function resolvePlayerAttack(pow){
 
 function endPoint(result,desc){
   G.pointDone=true;G.locked=true;clearInterval(G.blockInterval);clearInterval(G.defInterval);
+  if(result==='win') sounds.pointScored(); else sounds.error();
   checkSet(result,desc);
 }
 
@@ -591,7 +656,7 @@ function showPointResult(type,title,desc){
 
 function hidePointResult(){
   document.getElementById('point-result').style.display='none';
-  document.getElementById('action-area').style.display='grid';
+  document.getElementById('action-area').style.display='flex';
   document.getElementById('hand-area').style.display='flex';
 }
 
@@ -613,7 +678,8 @@ function moveBall(){
 
 function render(){
   document.getElementById('point-display').textContent=`${G.pPts} — ${G.aPts}`;
-  document.getElementById('set-display').textContent=`${G.pSets} — ${G.aSets}`;
+  const setsEl=document.getElementById('sets-display');
+  if(setsEl)setsEl.textContent=`Sets: ${G.pSets} × ${G.aSets}`;
   
   let detailedPhase = "";
   if (G.blockWindow) {
@@ -643,13 +709,14 @@ function render(){
   else if(G.phase==='service')msg.textContent='Escolha uma carta de saque';
   else if(G.possession==='player')msg.textContent='Sua vez de jogar';
   else msg.textContent=G.gameMode === 'multiplayer' ? 'Aguardando Oponente...' : 'Aguardando IA...';
-  const pips=document.getElementById('energy-pips');pips.innerHTML='';
-  for(let i=0;i<G.maxEnergy;i++){const p=document.createElement('div');p.className='energy-pip'+(i<G.energy?' filled':'');pips.appendChild(p);}
+  
+  // Renderizar energia no header (coluna direita)
+  const headerPips=document.getElementById('energy-pips-header');
+  if(headerPips){headerPips.innerHTML='';for(let i=0;i<G.maxEnergy;i++){const p=document.createElement('div');p.className='energy-pip'+(i<G.energy?' filled':'');headerPips.appendChild(p);}}
   
   const aiPips=document.getElementById('ai-energy-pips');aiPips.innerHTML='';
   for(let i=0;i<G.maxAiEnergy;i++){const p=document.createElement('div');p.className='energy-pip'+(i<G.aiEnergy?' filled':'');aiPips.appendChild(p);}
 
-  document.getElementById('energy-text').textContent=`${G.energy}/${G.maxEnergy}`;
   document.getElementById('freeball-notice').style.display=(G.energy===0&&!G.pointDone)?'block':'none';
   document.getElementById('deck-count').textContent=G.deck.length;
   document.getElementById('discard-count').textContent=G.discard.length;
@@ -658,11 +725,6 @@ function render(){
 
 function renderHand(){
   const c=document.getElementById('hand-cards');c.innerHTML='';
-  let handTitle = "Opções da Fase";
-  if (G.blockWindow) handTitle = "Opções de Bloqueio";
-  else if (G.defWindow) handTitle = G.isDefendingServe ? "Opções de Recepção (pode acumular)" : "Opções de Defesa (pode acumular)";
-  else handTitle = `Opções da Fase (${PHASE_NAMES[G.phase] || G.phase})`;
-  document.getElementById('hand-title').textContent = handTitle;
   
   G.hand.forEach((card,idx)=>{
     const playable=canPlay(card);const sel=G.selected.includes(idx);
@@ -682,14 +744,15 @@ function renderResolve(){
 
   if((G.defWindow || G.blockWindow) && !G.pointDone){
     panel.style.display='block';
+    panel.className = G.blockWindow ? 'block-mode' : 'def-mode';
     header.textContent = G.blockWindow ? "✋ Janela de bloqueio — bloquear ou deixar passar?" : "🛡️ Janela de defesa — selecione cartas e resolva";
-    timerWrapper.style.display = 'block';
-    
+    timerWrapper.style.display = 'flex';
+
     document.getElementById('atk-val').textContent=G.aiAtkPow;
     let dp=0;G.selected.forEach(i=>{if(G.hand[i])dp+=G.hand[i].power;});
     document.getElementById('def-val').textContent=dp;
     document.getElementById('def-val').style.color=dp>=G.aiAtkPow?'var(--teal)':'var(--coral)';
-  } else {panel.style.display='none';}
+  } else {panel.style.display='none';panel.className='';}
 }
 
 function renderActions(){
@@ -698,21 +761,20 @@ function renderActions(){
   const bPass=document.getElementById('btn-pass');
   const bRes=document.getElementById('btn-resolve');
   const bBlk=document.getElementById('btn-block');
-  
-  bDraw.textContent = "Trocar Carta (1⚡)";
+  const bSkip=document.getElementById('btn-skip-block');
+
+  bDraw.textContent = "Trocar (1⚡)";
   bDraw.disabled = G.locked || G.energy < 1 || G.selected.length !== 1;
 
   if(G.defWindow){
-    bPlay.style.display='none'; bBlk.style.display='none'; bDraw.style.display='block'; bPass.style.display='none'; bRes.style.display='block';
+    bPlay.style.display='none'; bBlk.style.display='none'; bDraw.style.display='block'; bPass.style.display='none'; bRes.style.display='block'; bSkip.style.display='none';
     bRes.disabled=G.selected.length===0;
   } else if(G.blockWindow){
-    bPlay.style.display='none'; bRes.style.display='none'; bDraw.style.display='block'; bPass.style.display='block'; bBlk.style.display='block';
+    bPlay.style.display='none'; bRes.style.display='none'; bDraw.style.display='block'; bPass.style.display='none'; bBlk.style.display='block'; bSkip.style.display='block';
     bBlk.disabled=G.selected.length===0;
-    bPass.textContent = "Não Bloquear";
-    bPass.disabled=G.locked;
+    bSkip.disabled=G.locked;
   } else {
-    bPlay.style.display='block'; bBlk.style.display='none'; bDraw.style.display='block'; bPass.style.display='block'; bRes.style.display='none';
-    bPass.textContent = "Passar Bola";
+    bPlay.style.display='block'; bBlk.style.display='none'; bDraw.style.display='block'; bPass.style.display='block'; bRes.style.display='none'; bSkip.style.display='none';
     bPlay.disabled=G.selected.length===0||G.locked;
     bPass.disabled=G.locked||G.phase==='service'||G.possession!=='player';
   }
@@ -726,8 +788,9 @@ function renderLog(){
 // --- Event Listeners ---
 document.getElementById('btn-play').addEventListener('click',playCard);
 document.getElementById('btn-reroll').addEventListener('click',rerollOption);
-document.getElementById('btn-pass').addEventListener('click',()=>{if(!G.locked&&!G.pointDone&&G.phase!=='service'){ if(G.blockWindow) resolveBlock(); else passBall(false); }});
+document.getElementById('btn-pass').addEventListener('click',()=>{if(!G.locked&&!G.pointDone&&G.phase!=='service'&&!G.blockWindow) passBall(false);});
 document.getElementById('btn-block').addEventListener('click',resolveBlock);
+document.getElementById('btn-skip-block').addEventListener('click',()=>{if(!G.locked&&!G.pointDone&&G.blockWindow) resolveBlock();});
 document.getElementById('btn-resolve').addEventListener('click',resolveDefense);
 document.getElementById('btn-next').addEventListener('click',startPoint);
 document.getElementById('overlay-btn').addEventListener('click',()=>{document.getElementById('overlay').style.display='none';newGame();});
@@ -737,7 +800,7 @@ appUI.style.display = 'none'; // Esconde o jogo ao iniciar
 
 btnStartAI.addEventListener('click', () => {
   mainMenu.style.display = 'none';
-  appUI.style.display = 'flex';
+  appUI.style.display = 'grid';
   newGame('ai');
 });
 
@@ -803,7 +866,7 @@ function setupConnectionHandlers(isHost) {
     connectionStatus.textContent = `Conectado a ${conn.peer}!`;
     setTimeout(() => {
         mainMenu.style.display = 'none';
-        appUI.style.display = 'flex';
+        appUI.style.display = 'grid';
         newGame('multiplayer', isHost);
     }, 1500);
   });

@@ -2,84 +2,120 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Ascension — Beach Volleyball MVP</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="app">
-  <div id="topbar">
-    <div><div class="set-score">Sets</div><div class="score" id="set-display">0 — 0</div></div>
-    <div style="text-align:center"><div class="set-score">ASCENSION</div><div style="font-size:10px;opacity:0.5;letter-spacing:1px;">beach volleyball</div></div>
-    <div style="text-align:right"><div class="set-score">Pontos</div><div class="score" id="point-display">0 — 0</div></div>
+
+  <!-- ─── HEADER: AMBOS JOGADORES ──────────────────────────── -->
+  <div id="opponent-dashboard" class="dashboard-zone">
+    <div class="header-energy left-energy">
+      <div class="player-avatar">🏖️</div>
+      <div class="player-stats">
+        <span class="player-label" id="player-label">Você</span>
+        <div id="energy-pips-header" class="mini-pips"></div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="score-block">
+        <div id="sets-display" class="score-sets">Sets: 0 × 0</div>
+        <div class="score-pts">
+          <span class="score-label">Pts: </span>
+          <span id="point-display">0 — 0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-energy right-energy">
+      <div class="player-stats">
+        <span class="player-label" id="ai-label">IA</span>
+        <div id="ai-energy-pips" class="mini-pips"></div>
+      </div>
+      <div class="player-avatar">🤖</div>
+    </div>
   </div>
 
+  <!-- ─── QUADRA ─────────────────────────────────────────────── -->
   <div id="court">
-    <div id="net-line"></div><div id="net-top"></div><div id="net-post"></div>
+    <div id="net-line"></div>
+    <div id="net-top"></div>
+    <div id="net-post"></div>
     <div id="court-sand"></div>
-    <div class="player-icon" id="player-icon">🏖️<span class="player-label">Você</span></div>
-    <div class="player-icon" id="ai-icon">
-      🤖<span class="player-label" id="ai-label">IA</span>
-      <div id="ai-energy-pips" class="mini-pips"></div>
-    </div>
     <div class="ball" id="ball">🏐</div>
   </div>
 
-  <div id="phase-bar">
-    <span id="phase-label">—</span>
-    <span id="possession-badge" class="poss-player">Você</span>
-    <span id="combo-badge">🔥 Combo!</span>
-    <span id="message-area"></span>
-  </div>
-
-  <div id="energy-bar">
-    <span id="energy-label">Energia</span>
-    <div id="energy-pips"></div>
-    <span id="energy-text">3/3</span>
-    <span id="freeball-notice">⚠ Bola livre!</span>
-  </div>
-
-  <div id="resolve-panel">
-    <h3 id="resolve-header">⚡ Janela de defesa — selecione cartas e resolva</h3>
-    <div id="timer-wrapper" style="display:none;">
-      <div id="timer-bar"></div>
-    </div>
-    <div id="resolve-bars">
-      <div class="resolve-side"><div class="resolve-val resolve-atk" id="atk-val">0</div><div style="font-size:11px;color:var(--text-light);">Ataque IA</div></div>
-      <div class="vs-label">vs</div>
-      <div class="resolve-side"><div class="resolve-val resolve-def" id="def-val">0</div><div style="font-size:11px;color:var(--text-light);">Sua Defesa</div></div>
-    </div>
-  </div>
-
-  <div id="hand-area">
-    <div id="hand-title">Opções da Fase</div>
-    <div id="hand-cards"></div>
-  </div>
-
-  <div id="point-result">
-    <div id="point-result-title"></div>
-    <div id="point-result-desc"></div>
-    <button class="btn btn-primary" id="btn-next" style="width:100%">Próximo Ponto →</button>
-  </div>
-
-  <div id="action-area">
-    <div class="action-btn-group">
-      <button class="btn btn-primary" id="btn-play" disabled>Jogar carta</button>
-      <button class="btn btn-primary" id="btn-block" style="display:none" disabled>Tentar Bloqueio</button>
-      <button class="btn btn-danger" id="btn-resolve" style="display:none" disabled>Resolver Defesa</button>
-    </div>
-    <div class="action-btn-group">
-      <button class="btn btn-draw" id="btn-reroll" disabled>Trocar Carta (1⚡)</button>
-    </div>
-    <div class="action-btn-group">
-      <button class="btn btn-secondary" id="btn-pass" disabled>Passar Bola</button>
-    </div>
-    <div id="deck-info">Baralho: <span id="deck-count">0</span> | Desc: <span id="discard-count">0</span></div>
-  </div>
-
+  <!-- ─── LOG SIDEBAR ──────────────────────────────────────────── -->
   <div id="log-area"></div>
-</div> <!-- Fim do #app -->
+
+  <!-- ─── PAINEL DO JOGADOR ────────────────────────────────────── -->
+  <div id="player-dashboard" class="dashboard-zone">
+
+    <div id="dashboard-header">
+      <div id="phase-info">
+        <span id="possession-badge" class="poss-player">Você</span>
+        <span id="phase-label">—</span>
+        <span id="combo-badge" style="display:none;">🔥 Combo!</span>
+      </div>
+      <div id="player-resources">
+        <span id="phase-detail"></span>
+      </div>
+    </div>
+
+    <div id="decision-arena">
+      <div id="resolve-panel" style="display:none;">
+        <div id="timer-wrapper" style="display:none;">
+          <div id="timer-bar-wrap"><div id="timer-bar"></div></div>
+          <span id="timer-count">15</span>
+        </div>
+        <h3 id="resolve-header">⚡ Selecione cartas para responder</h3>
+        <div id="resolve-bars">
+          <div class="resolve-side">
+            <div class="resolve-val resolve-atk" id="atk-val">0</div>
+            <div class="resolve-label" id="atk-label">Ataque IA</div>
+          </div>
+          <div class="vs-label">vs</div>
+          <div class="resolve-side">
+            <div class="resolve-val resolve-def" id="def-val">0</div>
+            <div class="resolve-label">Sua Resposta</div>
+          </div>
+        </div>
+      </div>
+      <div id="message-area"></div>
+      <span id="freeball-notice" style="display:none;">⚠ Bola livre! Sem energia.</span>
+    </div>
+
+    <div id="hand-area">
+      <div id="hand-cards"></div>
+    </div>
+
+    <div id="point-result">
+      <div id="point-result-title"></div>
+      <div id="point-result-desc"></div>
+      <button class="btn btn-primary" id="btn-next" style="width:100%">Próximo Ponto →</button>
+    </div>
+
+    <div id="action-area">
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-play" disabled>Jogar Carta</button>
+        <button class="btn btn-primary" id="btn-block" style="display:none" disabled>Confirmar Bloqueio</button>
+        <button class="btn btn-danger" id="btn-resolve" style="display:none" disabled>Confirmar Defesa</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-draw" id="btn-reroll" disabled>Trocar (1⚡)</button>
+        <button class="btn btn-secondary" id="btn-pass" disabled>Passar Bola</button>
+        <button class="btn btn-secondary" id="btn-skip-block" style="display:none" disabled>Não Bloquear</button>
+      </div>
+    </div>
+
+    <div id="deck-info">Baralho: <span id="deck-count">0</span> | Desc: <span id="discard-count">0</span></div>
+
+  </div><!-- fim #player-dashboard -->
+
+</div><!-- fim #app -->
 
 <div id="overlay">
   <div id="overlay-box">
