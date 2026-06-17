@@ -44,12 +44,21 @@ const playerIdDisplay = document.getElementById('player-id-display');
 const peerIdInput = document.getElementById('peer-id-input');
 const connectionStatus = document.getElementById('connection-status');
 
+function sendData(data) {
+  if (conn && conn.open) conn.send(data);
+}
+
 function newGame(gameMode = 'ai', isHost = false){
   G={
     gameMode,
     isHost,
-    pPts:0,aPts:0,pSets:0,aSets:0,energy:10,maxEnergy:10,aiEnergy:10,maxAiEnergy:10,deck:[],hand:[],discard:[],phase:'service',possession:'player',nextServer:'player',comboIdx:0,atkBoost:0,aiDefMinus:0,aiAtkPow:0,selected:[],defWindow:false,blockWindow:false,locked:false,pointDone:false,log:[],blockTimerVal:0,blockInterval:null,defTimerVal:0,defInterval:null,aiJustDefended:false,isDefendingServe:false
+    pPts:0,aPts:0,pSets:0,aSets:0,energy:10,maxEnergy:10,aiEnergy:10,maxAiEnergy:10,deck:[],hand:[],discard:[],phase:'service',
+    possession: gameMode === 'multiplayer' ? (isHost ? 'player' : 'ai') : 'player',
+    nextServer: gameMode === 'multiplayer' ? (isHost ? 'player' : 'ai') : 'player',
+    comboIdx:0,atkBoost:0,aiDefMinus:0,aiAtkPow:0,selected:[],defWindow:false,blockWindow:false,locked:false,pointDone:false,log:[],blockTimerVal:0,blockInterval:null,defTimerVal:0,defInterval:null,aiJustDefended:false,isDefendingServe:false
   };
+  const aiLabel = document.getElementById('ai-label');
+  if (aiLabel) aiLabel.textContent = gameMode === 'multiplayer' ? 'Oponente' : 'IA';
   buildDeck();startPoint();
 }
 
@@ -115,9 +124,11 @@ function startPoint(){
     log('— Novo ponto. Seu saque —');
     drawPhaseOptions();
   } else {
-    log('— Novo ponto. Saque da IA —');
+    log(G.gameMode === 'multiplayer' ? '— Novo ponto. Saque do Oponente —' : '— Novo ponto. Saque da IA —');
     G.locked = true;
-    setTimeout(() => aiTurn(), 1000);
+    if (G.gameMode === 'ai') {
+      setTimeout(() => aiTurn(), 1000);
+    }
   }
   render();
 }
@@ -146,6 +157,8 @@ function playCard(){
   applyBonus(card);
   log(`✅ ${card.name} [${PHASE_NAMES[G.phase]}, poder ${card.power}]`);
   updateCombo(card);
+  
+  if (G.gameMode === 'multiplayer') sendData({ type: 'PLAY_CARD', cardId: card.id });
 
   if (card.type === 'support') {
     clearHand();
@@ -160,13 +173,16 @@ function playCard(){
   if(G.phase==='service'){
     const errorChance = 0.05 + (card.power * 0.03); // Mais forte = maior risco de erro
     if (Math.random() < errorChance) {
-      log(`❌ O seu ${card.name} bateu na rede ou foi para fora! Ponto da IA.`);
+      const oppName = G.gameMode === 'multiplayer' ? 'Oponente' : 'IA';
+      log(`❌ O seu ${card.name} bateu na rede ou foi para fora! Ponto do ${oppName}.`);
       G.aPts++; G.nextServer = 'ai';
+      if (G.gameMode === 'multiplayer') sendData({ type: 'SERVICE_ERROR' });
       render();
       endPoint('loss', 'Erro de saque (bola fora ou na rede).');
     } else {
       log('🏐 Saque realizado com sucesso! A bola cruzou a rede...');
       G.phase='defense';
+      if (G.gameMode === 'multiplayer') sendData({ type: 'SERVICE_SUCCESS', power: card.power });
       render();
       setTimeout(() => passBall(true, true), 600);
     }
@@ -237,13 +253,12 @@ function passBall(forced, isServe = false){
     if(!forced)log('↩ Você passou a bola (+2⚡).');
     else log('↩ Bola livre enviada (+2⚡).');
     G.energy = Math.min(G.energy + 2, G.maxEnergy);
+        if (G.gameMode === 'multiplayer') sendData({ type: 'PASS_BALL', forced });
   }
   clearHand();
   G.possession='ai';G.locked=true;render();
   if (G.gameMode === 'ai') {
     setTimeout(() => aiTurn(), 900);
-  } else {
-    // TODO: Enviar ação 'passBall' para o oponente
   }
 }
 
@@ -375,6 +390,7 @@ function resolveBlock(){
   if(!card) {
     log("🏃 Você deixou o bloqueio passar. Preparando defesa...");
     clearHand();
+    if(G.gameMode === 'multiplayer') sendData({ type: 'BLOCK_SKIPPED' });
     startDefenseWindow();
     return;
   }
@@ -383,21 +399,30 @@ function resolveBlock(){
   clearHand();
 
   const roll = Math.random();
+  const oppName = G.gameMode === 'multiplayer' ? 'adversário' : 'IA';
   if (roll < 0.20) { // 20% Ponto de bloqueio
-    log(`🧱 O bloqueio ${card.name} parou a bola na quadra da IA! Ponto direto!`);
+    log(`🧱 O bloqueio ${card.name} parou a bola na quadra do ${oppName}! Ponto direto!`);
     G.pPts++; G.nextServer = 'player';
+    if(G.gameMode === 'multiplayer') sendData({ type: 'BLOCK_RESULT', cardId: card.id, resultType: 'POINT_DIRECT' });
     endPoint('win', 'Ponto de bloqueio!');
   } else if (roll < 0.40) { // 20% Bloqueio para fora
-    log(`❌ O bloqueio ${card.name} encostou na bola, mas ela desviou para fora! Ponto da IA.`);
+    log(`❌ O bloqueio ${card.name} encostou na bola, mas ela desviou para fora! Ponto perdido.`);
     G.aPts++; G.nextServer = 'ai';
+    if(G.gameMode === 'multiplayer') sendData({ type: 'BLOCK_RESULT', cardId: card.id, resultType: 'OUT' });
     endPoint('loss', 'Bloqueio para fora.');
   } else if (roll < 0.70) { // 30% Amorteceu (Defesa facilitada)
     G.aiAtkPow = Math.max(1, Math.floor(G.aiAtkPow / 2));
     log(`🧤 O bloqueio ${card.name} tocou na bola e amorteceu o impacto! (Poder reduzido para ${G.aiAtkPow})`);
+    if(G.gameMode === 'multiplayer') sendData({ type: 'BLOCK_RESULT', cardId: card.id, resultType: 'SOFTEN' });
     startDefenseWindow();
   } else { // 30% Jogo continua para IA
-    log(`🔁 O bloqueio ${card.name} encostou na bola, mas a IA conseguiu recuperar! O rally continua!`);
-    setTimeout(() => aiTurn(), 1000);
+    log(`🔁 O bloqueio ${card.name} encostou na bola, mas o ${oppName} conseguiu recuperar! O rally continua!`);
+    if (G.gameMode === 'multiplayer') {
+       sendData({ type: 'BLOCK_RESULT', cardId: card.id, resultType: 'CONTINUE' });
+       G.possession = 'ai'; G.locked = true;
+    } else {
+       setTimeout(() => aiTurn(), 1000);
+    }
   }
   render();
 }
@@ -453,14 +478,17 @@ function resolveDefense(){
   if(G.selected.length > 0) G.comboIdx = 1; // A defesa conta como o 1º toque do combo
 
   clearHand();G.defWindow=false;
-  log(`⚖ Seu poder de defesa ${defPow} vs Poder do ataque/saque da IA ${G.aiAtkPow}`);
+  const oppName = G.gameMode === 'multiplayer' ? 'Oponente' : 'IA';
+  log(`⚖ Seu poder de defesa ${defPow} vs Poder do ataque/saque: ${G.aiAtkPow}`);
   if(defPow>=G.aiAtkPow){
     log('✅ Defesa bem-sucedida! A bola está sob seu controle.');
+    if(G.gameMode === 'multiplayer') sendData({ type: 'DEFENSE_SUCCESS', defPow });
     G.possession='player';G.phase='setting';G.locked=false;drawPhaseOptions();render();
   } else {
-    log(`❌ A bola tocou no chão! Ponto para a IA.`);G.aPts++;
+    log(`❌ A bola tocou no chão! Ponto para o ${oppName}.`);G.aPts++;
     G.nextServer = 'ai';
-    endPoint('loss',`IA atacou com ${G.aiAtkPow}, você defendeu com ${defPow}.`);
+    if(G.gameMode === 'multiplayer') sendData({ type: 'DEFENSE_FAIL', defPow });
+    endPoint('loss',`O ataque superou a defesa.`);
   }
 }
 
@@ -574,30 +602,32 @@ function render(){
   
   let detailedPhase = "";
   if (G.blockWindow) {
-    detailedPhase = "Seu Bloqueio (Ataque da IA)";
+    detailedPhase = `Seu Bloqueio (Ataque do ${G.gameMode === 'multiplayer' ? 'Oponente' : 'IA'})`;
   } else if (G.defWindow) {
-    detailedPhase = G.isDefendingServe ? "Sua Recepção (Saque da IA)" : "Sua Defesa (Ataque da IA)";
+    detailedPhase = G.isDefendingServe ? `Sua Recepção (Saque do ${G.gameMode === 'multiplayer' ? 'Oponente' : 'IA'})` : `Sua Defesa (Ataque do ${G.gameMode === 'multiplayer' ? 'Oponente' : 'IA'})`;
   } else if (G.possession === 'player') {
     detailedPhase = G.phase === 'service' ? "Seu Saque" :
                     G.phase === 'defense' ? "Sua Defesa/Recepção" :
                     G.phase === 'setting' ? "Seu Levantamento" :
                     G.phase === 'attack' ? "Seu Ataque" : (PHASE_NAMES[G.phase]||G.phase);
   } else {
-    detailedPhase = "Turno da IA";
+    detailedPhase = `Turno do ${G.gameMode === 'multiplayer' ? 'Oponente' : 'IA'}`;
   }
   document.getElementById('phase-label').textContent=detailedPhase;
   
   const acting = (G.possession === 'player' || G.blockWindow || G.defWindow) ? 'player' : 'ai';
-  const pb=document.getElementById('possession-badge');pb.textContent=acting==='player'?'Você':'IA';pb.className='poss-'+acting;
+  const pb=document.getElementById('possession-badge');
+  pb.textContent=acting==='player'?'Você':(G.gameMode === 'multiplayer' ? 'Oponente' : 'IA');
+  pb.className='poss-'+acting;
   document.getElementById('combo-badge').style.display=G.comboIdx>0?'inline':'none';
   const msg=document.getElementById('message-area');
   if(G.pointDone)msg.textContent='';
   else if(G.defWindow)msg.textContent=G.isDefendingServe ? 'Prepare a Recepção!' : 'Defenda o Ataque!';
   else if(G.blockWindow)msg.textContent='Ação Rápida: Bloqueio!';
-  else if(G.locked)msg.textContent='🤖 IA jogando...';
+  else if(G.locked)msg.textContent=G.gameMode === 'multiplayer' ? '🧑‍💻 Oponente jogando...' : '🤖 IA jogando...';
   else if(G.phase==='service')msg.textContent='Escolha uma carta de saque';
   else if(G.possession==='player')msg.textContent='Sua vez de jogar';
-  else msg.textContent='Aguardando IA...';
+  else msg.textContent=G.gameMode === 'multiplayer' ? 'Aguardando Oponente...' : 'Aguardando IA...';
   const pips=document.getElementById('energy-pips');pips.innerHTML='';
   for(let i=0;i<G.maxEnergy;i++){const p=document.createElement('div');p.className='energy-pip'+(i<G.energy?' filled':'');pips.appendChild(p);}
   
@@ -756,7 +786,83 @@ function setupConnectionHandlers(isHost) {
 
   conn.on('data', (data) => {
     console.log('Ação recebida:', data);
-    // TODO: Lógica para processar as jogadas do oponente
+    if (data.type === 'PLAY_CARD') {
+       const card = CARDS_DB.find(c => c.id === data.cardId);
+       if (card) {
+         G.aiEnergy -= card.cost;
+         log(`🧑‍💻 Oponente jogou: ${card.name} (Gasto ${card.cost}⚡)`);
+         render();
+       }
+    }
+    if (data.type === 'SERVICE_ERROR') {
+       log(`🎉 O saque do Oponente bateu na rede ou foi para fora! Ponto seu.`);
+       G.pPts++; G.nextServer = 'player';
+       render();
+       endPoint('win', 'Erro de saque do Oponente (bola fora ou na rede).');
+    }
+    if (data.type === 'SERVICE_SUCCESS') {
+       log('🏐 O Saque do Oponente cruzou a rede...');
+       G.aiAtkPow = data.power;
+       G.possession = 'player'; // A posse de bola passa pra nós
+       G.locked = false;
+       startDefenseWindow(true);
+    }
+    if (data.type === 'PASS_BALL') {
+       log(`↩ Oponente passou a bola${data.forced ? ' (Freeball)' : ''} (+2⚡).`);
+       G.aiEnergy = Math.min(G.aiEnergy + 2, G.maxAiEnergy);
+       G.possession = 'player';
+       G.locked = false;
+       G.phase = 'defense';
+       G.aiAtkPow = 1; // Força pífia de freeball
+       startDefenseWindow(false);
+    }
+    
+    if (data.type === 'ATTACK') {
+       log(`⚡ O Oponente vem para a cortada com poder ${data.power}! Tentar Bloqueio?`);
+       G.aiAtkPow = data.power;
+       G.possession = 'player';
+       G.locked = false;
+       G.blockWindow = true;
+       G.phase = 'block';
+       drawPhaseOptions();
+       
+       G.blockTimerVal = 15.0;
+       const bar = document.getElementById('timer-bar');
+       if (bar) bar.style.width = "100%";
+       clearInterval(G.blockInterval);
+       G.blockInterval = setInterval(tickBlockTimer, 100);
+       render();
+    }
+    if (data.type === 'BLOCK_SKIPPED') {
+       log(`🏃 O Oponente deixou o bloqueio passar. Vai tentar a defesa...`);
+    }
+    if (data.type === 'BLOCK_RESULT') {
+       const card = CARDS_DB.find(c => c.id === data.cardId);
+       if (data.resultType === 'POINT_DIRECT') {
+         log(`🧱 O bloqueio ${card.name} do Oponente parou a bola! Ponto dele.`);
+         G.aPts++; G.nextServer = 'ai'; render(); endPoint('loss', 'Oponente marcou de bloqueio.');
+       } else if (data.resultType === 'OUT') {
+         log(`❌ O bloqueio ${card.name} do Oponente desviou a bola para fora! Ponto seu.`);
+         G.pPts++; G.nextServer = 'player'; render(); endPoint('win', 'Bloqueio do Oponente foi para fora.');
+       } else if (data.resultType === 'SOFTEN') {
+         log(`🧤 O bloqueio ${card.name} do Oponente amorteceu seu ataque.`);
+       } else if (data.resultType === 'CONTINUE') {
+         log(`🔁 O bloqueio ${card.name} do Oponente devolveu a bola fácil para você!`);
+         G.possession = 'player'; G.phase = 'defense'; G.locked = false; drawPhaseOptions(); render();
+       }
+    }
+    if (data.type === 'DEFENSE_SUCCESS') {
+       log(`🛡️ O Oponente defendeu o ataque com poder ${data.defPow}! A posse passou.`);
+       G.possession = 'ai'; // É a vez dele jogar cartas
+       G.locked = true;
+       render();
+    }
+    if (data.type === 'DEFENSE_FAIL') {
+       log(`✅ O Oponente falhou na defesa (Poder: ${data.defPow}). A bola caiu! Ponto seu.`);
+       G.pPts++; G.nextServer = 'player';
+       render();
+       endPoint('win', 'Seu ataque superou a defesa do Oponente.');
+    }
   });
 
   conn.on('close', () => {
