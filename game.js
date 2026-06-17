@@ -32,6 +32,13 @@ const COMBO_SEQ=['defense','setting','attack'];
 let G={};
 let peer = null;
 let conn = null;
+const PEER_CONFIG = {
+  host: '0.peerjs.com',
+  port: 443,
+  path: '/',
+  secure: true,
+  debug: 2
+};
 
 // --- UI Element Selectors ---
 const mainMenu = document.getElementById('main-menu-overlay');
@@ -736,7 +743,7 @@ btnStartMultiplayer.addEventListener('click', () => {
 });
 
 btnConnect.addEventListener('click', () => {
-  const remoteId = peerIdInput.value.trim();
+  const remoteId = peerIdInput.value.trim().toUpperCase();
   if (remoteId && peer) {
     connectToPeer(remoteId);
   }
@@ -796,6 +803,66 @@ function initializePeer() {
 }
 
 function connectToPeer(remoteId) {
+  connectionStatus.textContent = `Conectando a ${remoteId}...`;
+  conn = peer.connect(remoteId);
+  setupConnectionHandlers(false); // Sou o cliente
+}
+
+function initializePeer() {
+  if (typeof Peer === 'undefined') {
+    playerIdDisplay.textContent = 'Falha!';
+    connectionStatus.textContent = 'PeerJS nao carregou. Confira se o script da CDN abriu no GitHub Pages.';
+    btnStartMultiplayer.textContent = 'Tentar novamente';
+    btnStartMultiplayer.disabled = false;
+    return;
+  }
+
+  try {
+    createPeerWithShortId();
+  } catch (e) {
+    console.error(e);
+    playerIdDisplay.textContent = 'Erro!';
+    connectionStatus.textContent = 'Nao foi possivel iniciar o servico de rede.';
+    btnStartMultiplayer.textContent = 'Tentar novamente';
+    btnStartMultiplayer.disabled = false;
+  }
+}
+
+function createPeerWithShortId(attempt = 0) {
+  const shortId = Math.random().toString(36).slice(2, 8).toUpperCase();
+  peer = new Peer(shortId, PEER_CONFIG);
+
+  peer.on('open', id => {
+    playerIdDisplay.textContent = id;
+    btnStartMultiplayer.textContent = 'Compartilhe seu ID';
+    connectionStatus.textContent = 'Sala criada! Aguardando conexao...';
+  });
+
+  peer.on('connection', (newConn) => {
+    if (conn && conn.open) { newConn.close(); return; }
+    conn = newConn;
+    setupConnectionHandlers(true); // Sou o host
+  });
+
+  peer.on('error', (err) => {
+    console.error(err);
+    if (err.type === 'unavailable-id' && attempt < 4) {
+      if (peer) peer.destroy();
+      createPeerWithShortId(attempt + 1);
+      return;
+    }
+    playerIdDisplay.textContent = 'Falha!';
+    btnStartMultiplayer.textContent = 'Tentar novamente';
+    btnStartMultiplayer.disabled = false;
+    connectionStatus.textContent = 'Erro: servidor de conexao PeerJS indisponivel ou bloqueado.';
+  });
+}
+
+function connectToPeer(remoteId) {
+  if (!peer || peer.disconnected || peer.destroyed) {
+    connectionStatus.textContent = 'A sala ainda nao foi criada. Aguarde o ID aparecer.';
+    return;
+  }
   connectionStatus.textContent = `Conectando a ${remoteId}...`;
   conn = peer.connect(remoteId);
   setupConnectionHandlers(false); // Sou o cliente
