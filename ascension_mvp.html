@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ascension — Beach Volleyball MVP</title>
+<style>
+:root{--sand:#F5EDD6;--sand-dark:#E8D9B0;--sand-border:#C9B87A;--sky:#2A6FA8;--sky-light:#5B9FD4;--coral:#D85A30;--coral-light:#F0997B;--teal:#1D9E75;--teal-light:#5DCAA5;--net:#8B6914;--text-dark:#2C2416;--text-mid:#6B5530;--text-light:#9B8055;--card-bg:#FFFDF5;--energy-gold:#D4A017;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,sans-serif;background:var(--sky);min-height:100vh;color:var(--text-dark);}
+#app{display:flex;flex-direction:column;min-height:100vh;max-width:720px;margin:0 auto;background:var(--sky);}
+#topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:rgba(0,0,0,0.25);font-family:monospace;color:#fff;font-size:13px;}
+#topbar .score{font-size:22px;font-weight:700;letter-spacing:2px;}
+#topbar .set-score{font-size:12px;opacity:0.7;}
+#court{position:relative;height:110px;background:linear-gradient(180deg,#5B9FD4 0%,#3A7FBC 100%);overflow:hidden;flex-shrink:0;}
+#court-sand{position:absolute;bottom:0;left:0;right:0;height:55px;background:var(--sand);border-top:2px solid var(--sand-border);}
+#net-post{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);width:3px;height:55px;background:var(--net);}
+#net-line{position:absolute;bottom:18px;left:15%;right:15%;height:2px;background:var(--net);opacity:0.8;}
+#net-top{position:absolute;bottom:73px;left:15%;right:15%;height:2px;background:rgba(255,255,255,0.6);}
+.player-icon{position:absolute;bottom:20px;font-size:20px;display:flex;flex-direction:column;align-items:center;gap:2px;}
+#player-icon{left:18%;}#ai-icon{right:18%;}
+.player-label{font-size:9px;color:var(--text-mid);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;}
+.ball{position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid #ddd;transition:all 0.5s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;justify-content:center;font-size:11px;}
+#phase-bar{background:rgba(0,0,0,0.35);padding:8px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#phase-label{font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.08em;}
+#possession-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;}
+.poss-player{background:var(--teal-light);color:#04342C;}
+.poss-ai{background:var(--coral-light);color:#4A1B0C;}
+#combo-badge{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--energy-gold);color:#2C1A00;font-weight:600;display:none;}
+#message-area{flex:1;text-align:right;font-size:12px;color:rgba(255,255,255,0.85);font-style:italic;}
+#energy-bar{background:var(--sand-dark);padding:8px 16px;display:flex;align-items:center;gap:8px;}
+#energy-label{font-size:12px;color:var(--text-mid);font-weight:500;}
+#energy-pips{display:flex;gap:4px;}
+.energy-pip{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--energy-gold);background:transparent;transition:background 0.15s;}
+.energy-pip.filled{background:var(--energy-gold);}
+#energy-text{font-family:monospace;font-size:13px;color:var(--text-dark);font-weight:700;margin-left:2px;}
+#freeball-notice{margin-left:auto;font-size:11px;color:var(--coral);font-weight:600;display:none;}
+#hand-area{background:var(--sand);padding:10px 14px;display:flex;flex-direction:column;gap:8px;}
+#hand-title{font-size:11px;color:var(--text-light);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;}
+#hand-cards{display:flex;gap:7px;flex-wrap:wrap;}
+.card{width:94px;background:var(--card-bg);border-radius:8px;border:1.5px solid var(--sand-border);padding:7px;cursor:pointer;transition:transform 0.1s,border-color 0.1s,box-shadow 0.1s;user-select:none;position:relative;flex-shrink:0;}
+.card:hover:not(.disabled){transform:translateY(-6px);box-shadow:0 6px 16px rgba(0,0,0,0.15);border-color:var(--sky);}
+.card.disabled{opacity:0.4;cursor:not-allowed;}
+.card.selected{border-color:var(--sky);box-shadow:0 0 0 2px var(--sky-light);transform:translateY(-4px);}
+.card-type{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;padding:2px 5px;border-radius:3px;display:inline-block;}
+.type-service{background:#FAEEDA;color:#633806;}
+.type-reception{background:#B5D4F4;color:#0C447C;}
+.type-setting{background:#C0DD97;color:#27500A;}
+.type-attack{background:#F5C4B3;color:#712B13;}
+.type-defense{background:#CECBF6;color:#3C3489;}
+.type-support{background:#FAC775;color:#633806;}
+.card-name{font-size:11px;font-weight:600;color:var(--text-dark);margin-bottom:3px;line-height:1.2;}
+.card-power{font-family:monospace;font-size:17px;font-weight:700;color:var(--text-dark);}
+.card-cost{position:absolute;top:6px;right:6px;width:19px;height:19px;border-radius:50%;background:var(--energy-gold);color:#2C1A00;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:monospace;}
+.card-desc{font-size:9px;color:var(--text-light);line-height:1.3;margin-top:3px;}
+#resolve-panel{background:#fff;border:1.5px solid var(--sand-border);border-radius:10px;padding:10px 14px;margin:0 14px;display:none;}
+#resolve-panel h3{font-size:12px;color:var(--text-dark);margin-bottom:6px;}
+#resolve-bars{display:flex;gap:16px;align-items:center;justify-content:center;margin-bottom:4px;}
+.resolve-side{text-align:center;}
+.resolve-val{font-family:monospace;font-size:26px;font-weight:700;}
+.resolve-atk{color:var(--coral);}
+.resolve-def{color:var(--teal);}
+.vs-label{font-size:14px;color:var(--text-light);font-weight:600;}
+#action-area{background:var(--sand-dark);padding:9px 14px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--sand-border);}
+.btn{padding:7px 14px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all 0.15s;font-family:system-ui,sans-serif;}
+.btn:active:not(:disabled){transform:scale(0.97);}
+.btn-primary{background:var(--sky);border-color:var(--sky);color:#fff;}
+.btn-primary:hover:not(:disabled){background:var(--sky-light);}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-secondary{background:transparent;border-color:var(--sand-border);color:var(--text-dark);}
+.btn-secondary:hover:not(:disabled){background:var(--sand);}
+.btn-secondary:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-danger{background:var(--coral);border-color:var(--coral);color:#fff;}
+.btn-danger:hover:not(:disabled){background:#C04E28;}
+.btn-danger:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-draw{background:var(--energy-gold);border-color:var(--energy-gold);color:#2C1A00;}
+.btn-draw:hover:not(:disabled){background:#C4901A;}
+.btn-draw:disabled{opacity:0.4;cursor:not-allowed;}
+#deck-info{margin-left:auto;font-size:11px;color:var(--text-light);font-family:monospace;}
+#log-area{background:var(--sand);padding:5px 14px 8px;font-size:11px;color:var(--text-light);font-family:monospace;max-height:54px;overflow-y:auto;line-height:1.5;border-top:1px solid var(--sand-border);}
+.log-entry{border-bottom:0.5px solid var(--sand-border);padding:1px 0;}
+.log-entry:last-child{border:none;}
+#point-result{display:none;margin:0 14px;border-radius:10px;padding:14px 18px;text-align:center;}
+#point-result.win{background:#D4F5E8;border:1.5px solid var(--teal);}
+#point-result.loss{background:#FDE8E0;border:1.5px solid var(--coral);}
+#point-result-title{font-size:20px;font-weight:700;margin-bottom:4px;}
+#point-result-desc{font-size:13px;color:var(--text-mid);margin-bottom:10px;}
+#point-result.win #point-result-title{color:var(--teal);}
+#point-result.loss #point-result-title{color:var(--coral);}
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:100;}
+#overlay-box{background:var(--card-bg);border-radius:12px;padding:28px;max-width:340px;width:90%;text-align:center;}
+#overlay-title{font-size:26px;font-weight:700;margin-bottom:8px;}
+#overlay-msg{font-size:14px;color:var(--text-mid);margin-bottom:20px;line-height:1.5;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="topbar">
+    <div><div class="set-score">Sets</div><div class="score" id="set-display">0 — 0</div></div>
+    <div style="text-align:center"><div class="set-score">ASCENSION</div><div style="font-size:10px;opacity:0.5;letter-spacing:1px;">beach volleyball</div></div>
+    <div style="text-align:right"><div class="set-score">Pontos</div><div class="score" id="point-display">0 — 0</div></div>
+  </div>
+
+  <div id="court">
+    <div id="net-line"></div><div id="net-top"></div><div id="net-post"></div>
+    <div id="court-sand"></div>
+    <div class="player-icon" id="player-icon">🏖️<span class="player-label">Você</span></div>
+    <div class="player-icon" id="ai-icon">🤖<span class="player-label">IA</span></div>
+    <div class="ball" id="ball">🏐</div>
+  </div>
+
+  <div id="phase-bar">
+    <span id="phase-label">—</span>
+    <span id="possession-badge" class="poss-player">Você</span>
+    <span id="combo-badge">🔥 Combo!</span>
+    <span id="message-area"></span>
+  </div>
+
+  <div id="energy-bar">
+    <span id="energy-label">Energia</span>
+    <div id="energy-pips"></div>
+    <span id="energy-text">3/3</span>
+    <span id="freeball-notice">⚠ Bola livre!</span>
+  </div>
+
+  <div id="hand-area">
+    <div id="hand-title">Mão</div>
+    <div id="hand-cards"></div>
+  </div>
+
+  <div id="resolve-panel">
+    <h3>⚡ Janela de defesa — selecione cartas e resolva</h3>
+    <div id="resolve-bars">
+      <div class="resolve-side"><div class="resolve-val resolve-atk" id="atk-val">0</div><div style="font-size:11px;color:var(--text-light);">Ataque IA</div></div>
+      <div class="vs-label">vs</div>
+      <div class="resolve-side"><div class="resolve-val resolve-def" id="def-val">0</div><div style="font-size:11px;color:var(--text-light);">Sua Defesa</div></div>
+    </div>
+  </div>
+
+  <div id="point-result">
+    <div id="point-result-title"></div>
+    <div id="point-result-desc"></div>
+    <button class="btn btn-primary" id="btn-next" style="width:100%">Próximo Ponto →</button>
+  </div>
+
+  <div id="action-area">
+    <button class="btn btn-primary" id="btn-play" disabled>Jogar carta</button>
+    <button class="btn btn-draw" id="btn-draw" disabled>+1 Carta (1⚡)</button>
+    <button class="btn btn-secondary" id="btn-pass" disabled>Passar Bola</button>
+    <button class="btn btn-danger" id="btn-resolve" style="display:none" disabled>Resolver Defesa</button>
+    <div id="deck-info">Baralho: <span id="deck-count">0</span> | Desc: <span id="discard-count">0</span></div>
+  </div>
+
+  <div id="log-area"></div>
+</div>
+
+<div id="overlay">
+  <div id="overlay-box">
+    <div id="overlay-title"></div>
+    <div id="overlay-msg"></div>
+    <button class="btn btn-primary" id="overlay-btn" style="width:100%;margin-top:4px">Novo Jogo</button>
+  </div>
+</div>
+
+<script>
+const CARDS_DB=[
+  {id:'srv1',name:'Saque Flutuante',type:'service',cost:1,power:2,desc:'Difícil de receber.',phases:['service']},
+  {id:'srv2',name:'Saque Potente',type:'service',cost:2,power:4,desc:'Agressivo. Dificulta a recepção adversária.',phases:['service']},
+  {id:'srv3',name:'Saque Tático',type:'service',cost:0,power:1,desc:'Controlado. Guarda energia.',phases:['service']},
+  {id:'rec1',name:'Manchete Firme',type:'reception',cost:1,power:3,desc:'Recepção estável.',phases:['reception']},
+  {id:'rec2',name:'Mergulho',type:'reception',cost:1,power:2,desc:'Salva bolas difíceis.',phases:['reception','defense']},
+  {id:'rec3',name:'Leitura de Jogo',type:'reception',cost:2,power:4,desc:'+1 Energia.',phases:['reception'],bonus:'energy1'},
+  {id:'set1',name:'Levantamento Alto',type:'setting',cost:1,power:3,desc:'Abre o ataque.',phases:['setting']},
+  {id:'set2',name:'Levantamento Rápido',type:'setting',cost:2,power:5,desc:'+2 poder no próximo ataque.',phases:['setting'],bonus:'atkBoost2'},
+  {id:'set3',name:'Levantamento de Costas',type:'setting',cost:1,power:2,desc:'Engana o bloqueio.',phases:['setting']},
+  {id:'atk1',name:'Cortada Diagonal',type:'attack',cost:2,power:5,desc:'Alto poder.',phases:['attack']},
+  {id:'atk2',name:'Ponta Aberta',type:'attack',cost:1,power:3,desc:'Ataque nas bordas.',phases:['attack']},
+  {id:'atk3',name:'Bola na Linha',type:'attack',cost:3,power:7,desc:'Alto risco, alta recompensa.',phases:['attack']},
+  {id:'atk4',name:'Finta',type:'attack',cost:1,power:2,desc:'IA defende com -1.',phases:['attack'],bonus:'aiDefMinus1'},
+  {id:'def1',name:'Defesa de Plataforma',type:'defense',cost:1,power:3,desc:'Sólida e confiável.',phases:['defense']},
+  {id:'def2',name:'Bloco Antecipado',type:'defense',cost:2,power:5,desc:'Reduz o ataque adversário.',phases:['defense']},
+  {id:'def3',name:'Leitura do Ataque',type:'defense',cost:1,power:4,desc:'Boa leitura recompensa.',phases:['defense']},
+  {id:'def4',name:'Defesa Desesperada',type:'defense',cost:0,power:1,desc:'Grátis. Última esperança.',phases:['defense']},
+  {id:'sup1',name:'Foco',type:'support',cost:0,power:0,desc:'+2 Energia.',phases:['reception','setting','attack','defense'],bonus:'energy2'},
+  {id:'sup2',name:'Comunicação',type:'support',cost:1,power:0,desc:'+1 carta.',phases:['reception','setting','attack','defense'],bonus:'draw1'},
+];
+
+const PHASE_NAMES={service:'Saque',reception:'Recepção',setting:'Levantamento',attack:'Ataque',defense:'Defesa'};
+const COMBO_SEQ=['reception','setting','attack'];
+let G={};
+
+function newGame(){
+  G={pPts:0,aPts:0,pSets:0,aSets:0,energy:3,maxEnergy:3,deck:[],hand:[],discard:[],phase:'service',possession:'player',comboIdx:0,atkBoost:0,aiDefMinus:0,aiAtkPow:0,selected:[],defWindow:false,locked:false,pointDone:false,log:[]};
+  buildDeck();startPoint();
+}
+
+function buildDeck(){
+  let pool=[];CARDS_DB.forEach(c=>{pool.push({...c});pool.push({...c});});
+  G.deck=shuffle(pool).slice(0,22);
+}
+
+function shuffle(arr){let a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function resetDeck(){G.deck=[...G.deck,...G.hand,...G.discard];G.hand=[];G.discard=[];G.deck=shuffle(G.deck);}
+
+function drawCard(n=1){
+  for(let i=0;i<n;i++){
+    if(G.deck.length===0){if(G.discard.length===0)return;G.deck=shuffle([...G.discard]);G.discard=[];log('📦 Baralho reembaralhado.');}
+    if(G.deck.length>0)G.hand.push(G.deck.pop());
+  }
+}
+
+function startPoint(){
+  resetDeck();drawCard(5);
+  if(!G.hand.some(c=>c.phases.includes('service'))){
+    const si=G.deck.findIndex(c=>c.phases.includes('service'));
+    if(si>=0){const wi=G.hand.findIndex(c=>!c.phases.includes('service'));if(wi>=0){G.discard.push(G.hand[wi]);G.hand[wi]=G.deck.splice(si,1)[0];}}
+  }
+  G.energy=G.maxEnergy;G.phase='service';G.possession='player';
+  G.comboIdx=0;G.atkBoost=0;G.aiDefMinus=0;G.selected=[];G.defWindow=false;G.locked=false;G.pointDone=false;
+  hidePointResult();log('— Novo ponto. Seu saque —');render();
+}
+
+function log(msg){G.log.unshift(msg);if(G.log.length>40)G.log.pop();}
+
+function canPlay(card){
+  if(G.defWindow)return card.phases.includes('defense')&&card.cost<=G.energy;
+  return card.phases.includes(G.phase)&&card.cost<=G.energy;
+}
+
+function selectCard(idx){
+  if(G.locked||G.pointDone)return;
+  const card=G.hand[idx];if(!card||!canPlay(card))return;
+  if(G.defWindow){const si=G.selected.indexOf(idx);if(si>=0)G.selected.splice(si,1);else G.selected.push(idx);}
+  else{G.selected=G.selected[0]===idx?[]:[idx];}
+  render();
+}
+
+function playCard(){
+  if(G.selected.length===0||G.locked||G.pointDone)return;
+  const idx=G.selected[0];const card=G.hand[idx];if(!card)return;
+  G.locked=true;G.energy-=card.cost;G.hand.splice(idx,1);G.discard.push(card);G.selected=[];
+  applyBonus(card);
+  log(`✅ ${card.name} [${PHASE_NAMES[G.phase]}, poder ${card.power}]`);
+  updateCombo(card);
+  if(G.phase==='service'){G.possession='player';G.phase='reception';log('📡 Recepção...');G.locked=false;checkFreeball();render();}
+  else if(G.phase==='reception'){G.phase='setting';log('🤲 Levantamento...');G.locked=false;checkFreeball();render();}
+  else if(G.phase==='setting'){G.phase='attack';log('💥 Prepare o ataque!');G.locked=false;checkFreeball();render();}
+  else if(G.phase==='attack'){const total=card.power+G.atkBoost;G.atkBoost=0;log(`🏐 Ataque total ${total}!`);render();setTimeout(()=>resolvePlayerAttack(total),700);}
+}
+
+function buyCard(){
+  if(G.locked||G.pointDone||G.defWindow||G.phase==='service'||G.energy<1)return;
+  G.energy-=1;drawCard(1);
+  log('🃏 Comprou 1 carta (-1 energia).');
+  checkFreeball();render();
+}
+
+function applyBonus(card){
+  if(!card.bonus)return;
+  if(card.bonus==='energy1'){G.energy=Math.min(G.energy+1,G.maxEnergy);log('+1 Energia!');}
+  if(card.bonus==='energy2'){G.energy=Math.min(G.energy+2,G.maxEnergy);log('+2 Energia!');}
+  if(card.bonus==='atkBoost2'){G.atkBoost+=2;log('+2 poder no próximo ataque!');}
+  if(card.bonus==='draw1'){drawCard(1);log('+1 carta!');}
+  if(card.bonus==='aiDefMinus1'){G.aiDefMinus+=1;log('IA defende com -1!');}
+}
+
+function updateCombo(card){
+  if(card.type==='support')return;
+  if(G.comboIdx<COMBO_SEQ.length&&card.type===COMBO_SEQ[G.comboIdx]){G.comboIdx++;if(G.comboIdx===COMBO_SEQ.length){G.atkBoost+=2;log('🔥 COMBO! +2 poder bônus!');}}
+  else if(card.type!=='service'){G.comboIdx=0;}
+}
+
+function checkFreeball(){
+  if(G.energy===0&&!G.defWindow&&G.phase!=='service'&&G.possession==='player'){
+    log('⚠ Energia zerada! Bola livre para a IA.');G.locked=true;
+    setTimeout(()=>{G.locked=false;passBall(true);},600);
+  }
+}
+
+function passBall(forced){
+  if(G.pointDone)return;
+  if(!forced)log('↩ Você passou a bola.');
+  G.possession='ai';G.energy=Math.min(G.energy+1,G.maxEnergy);G.locked=true;render();
+  setTimeout(()=>aiTurn(),900);
+}
+
+function aiTurn(){
+  if(G.pointDone)return;
+  log('🤖 IA preparando ataque...');render();
+  setTimeout(()=>{
+    const pow=2+Math.floor(Math.random()*5);G.aiAtkPow=pow;
+    G.defWindow=true;G.selected=[];G.phase='defense';
+    G.energy=Math.min(G.energy+1,G.maxEnergy);G.locked=false;
+    log(`⚡ IA ataca com poder ${pow}! Selecione defesa.`);render();
+    clearTimeout(G._defTimer);
+    G._defTimer=setTimeout(()=>{if(G.defWindow&&!G.pointDone)autoResolve();},9000);
+  },900);
+}
+
+function resolveDefense(){
+  if(!G.defWindow||G.pointDone)return;
+  clearTimeout(G._defTimer);
+  let defPow=0;
+  [...G.selected].sort((a,b)=>b-a).forEach(idx=>{
+    const c=G.hand[idx];
+    if(c&&c.phases.includes('defense')&&c.cost<=G.energy){defPow+=c.power;G.energy-=c.cost;G.discard.push(c);G.hand.splice(idx,1);log(`🛡 ${c.name} (poder ${c.power})`);}
+  });
+  G.selected=[];G.defWindow=false;
+  log(`⚖ IA ${G.aiAtkPow} vs Defesa ${defPow}`);
+  if(defPow>=G.aiAtkPow){
+    log('✅ Defesa! Posse volta para você.');
+    G.possession='player';G.phase='setting';G.energy=Math.min(G.energy+1,G.maxEnergy);drawCard(1);G.locked=false;render();
+  } else {
+    log(`❌ Ataque passou. Ponto para a IA.`);G.aPts++;
+    endPoint('loss',`IA atacou com ${G.aiAtkPow}, você defendeu com ${defPow}.`);
+  }
+}
+
+function autoResolve(){
+  if(!G.defWindow||G.pointDone)return;
+  G.defWindow=false;G.selected=[];
+  log('⏱ Tempo! Defesa 0.');G.aPts++;
+  endPoint('loss',`Tempo esgotado. IA atacou com ${G.aiAtkPow}, defesa 0.`);
+}
+
+function resolvePlayerAttack(pow){
+  if(G.pointDone)return;
+  const aiDef=Math.max(0,(1+Math.floor(Math.random()*4))-G.aiDefMinus);G.aiDefMinus=0;
+  log(`🤖 IA defende ${aiDef}`);log(`⚖ Ataque ${pow} vs IA ${aiDef}`);
+  if(pow>aiDef){
+    log('✅ Ponto para você!');G.pPts++;
+    endPoint('win',`Seu ataque (${pow}) superou a defesa da IA (${aiDef}).`);
+  } else {
+    log('❌ IA defendeu. Posse passa para a IA.');
+    G.possession='ai';G.energy=Math.min(G.energy+1,G.maxEnergy);G.locked=false;render();
+    setTimeout(()=>aiTurn(),900);
+  }
+}
+
+function endPoint(result,desc){
+  G.pointDone=true;G.locked=true;clearTimeout(G._defTimer);
+  checkSet(result,desc);
+}
+
+function checkSet(result,desc){
+  const WIN=15;
+  if(G.pPts>=WIN&&G.pPts-G.aPts>=2){
+    G.pSets++;G.pPts=0;G.aPts=0;
+    if(G.pSets>=2){render();showEnd(true);return;}
+    log(`🏆 Set para você! ${G.pSets}×${G.aSets}`);
+    render();showPointResult('win','🏆 Set para você!',`Você venceu o set. Placar: ${G.pSets}×${G.aSets}`);return;
+  }
+  if(G.aPts>=WIN&&G.aPts-G.pPts>=2){
+    G.aSets++;G.pPts=0;G.aPts=0;
+    if(G.aSets>=2){render();showEnd(false);return;}
+    log(`💔 Set para a IA! ${G.pSets}×${G.aSets}`);
+    render();showPointResult('loss','💔 Set para a IA',`IA venceu o set. Placar: ${G.pSets}×${G.aSets}`);return;
+  }
+  render();
+  if(result==='win')showPointResult('win','🎉 Ponto seu!',desc||'Você venceu o rally.');
+  else showPointResult('loss','❌ Ponto da IA',desc||'IA venceu o rally.');
+}
+
+function showPointResult(type,title,desc){
+  const el=document.getElementById('point-result');
+  el.className=type;el.style.display='block';
+  document.getElementById('point-result-title').textContent=title;
+  document.getElementById('point-result-desc').textContent=desc;
+  document.getElementById('action-area').style.display='none';
+  document.getElementById('hand-area').style.display='none';
+  document.getElementById('resolve-panel').style.display='none';
+}
+
+function hidePointResult(){
+  document.getElementById('point-result').style.display='none';
+  document.getElementById('action-area').style.display='flex';
+  document.getElementById('hand-area').style.display='flex';
+}
+
+function showEnd(won){
+  document.getElementById('overlay-title').textContent=won?'🏆 Vitória!':'💔 Derrota';
+  document.getElementById('overlay-msg').textContent=won
+    ?`Você venceu! ${G.pSets}×${G.aSets} em sets.`
+    :`IA venceu. ${G.aSets}×${G.pSets} em sets.`;
+  document.getElementById('overlay').style.display='flex';
+}
+
+function moveBall(){
+  const ball=document.getElementById('ball');if(!ball)return;
+  if(G.defWindow){ball.style.left='48%';ball.style.bottom='55px';}
+  else if(G.possession==='player'){ball.style.left='25%';ball.style.bottom='25px';}
+  else{ball.style.left='68%';ball.style.bottom='25px';}
+}
+
+function render(){
+  document.getElementById('point-display').textContent=`${G.pPts} — ${G.aPts}`;
+  document.getElementById('set-display').textContent=`${G.pSets} — ${G.aSets}`;
+  document.getElementById('phase-label').textContent=PHASE_NAMES[G.phase]||G.phase;
+  const pb=document.getElementById('possession-badge');pb.textContent=G.possession==='player'?'Você':'IA';pb.className='poss-'+(G.possession==='player'?'player':'ai');
+  document.getElementById('combo-badge').style.display=G.comboIdx>0?'inline':'none';
+  const msg=document.getElementById('message-area');
+  if(G.pointDone)msg.textContent='';
+  else if(G.defWindow)msg.textContent='⚡ Janela de defesa!';
+  else if(G.locked)msg.textContent='🤖 IA jogando...';
+  else if(G.phase==='service')msg.textContent='Escolha uma carta de saque';
+  else if(G.possession==='player')msg.textContent=PHASE_NAMES[G.phase];
+  else msg.textContent='Aguardando IA...';
+  const pips=document.getElementById('energy-pips');pips.innerHTML='';
+  for(let i=0;i<G.maxEnergy;i++){const p=document.createElement('div');p.className='energy-pip'+(i<G.energy?' filled':'');pips.appendChild(p);}
+  document.getElementById('energy-text').textContent=`${G.energy}/${G.maxEnergy}`;
+  document.getElementById('freeball-notice').style.display=(G.energy===0&&!G.pointDone)?'block':'none';
+  document.getElementById('deck-count').textContent=G.deck.length;
+  document.getElementById('discard-count').textContent=G.discard.length;
+  renderHand();renderResolve();renderActions();renderLog();moveBall();
+}
+
+function renderHand(){
+  const c=document.getElementById('hand-cards');c.innerHTML='';
+  document.getElementById('hand-title').textContent=G.defWindow?'Mão — selecione cartas de defesa (pode acumular)':`Mão — ${G.hand.length} cartas`;
+  G.hand.forEach((card,idx)=>{
+    const playable=canPlay(card);const sel=G.selected.includes(idx);
+    const blocked=!playable||(G.locked&&!G.defWindow);
+    const div=document.createElement('div');
+    div.className='card'+(sel?' selected':'')+(blocked?' disabled':'');
+    div.innerHTML=`<div class="card-type type-${card.type}">${card.type}</div><div class="card-cost">${card.cost}</div><div class="card-name">${card.name}</div><div class="card-power">${card.power>0?card.power:'—'}</div><div class="card-desc">${card.desc}</div>`;
+    if(!blocked)div.addEventListener('click',()=>selectCard(idx));
+    c.appendChild(div);
+  });
+}
+
+function renderResolve(){
+  const panel=document.getElementById('resolve-panel');
+  if(G.defWindow&&!G.pointDone){
+    panel.style.display='block';
+    document.getElementById('atk-val').textContent=G.aiAtkPow;
+    let dp=0;G.selected.forEach(i=>{if(G.hand[i])dp+=G.hand[i].power;});
+    document.getElementById('def-val').textContent=dp;
+    document.getElementById('def-val').style.color=dp>=G.aiAtkPow?'var(--teal)':'var(--coral)';
+  } else {panel.style.display='none';}
+}
+
+function renderActions(){
+  const bPlay=document.getElementById('btn-play');
+  const bDraw=document.getElementById('btn-draw');
+  const bPass=document.getElementById('btn-pass');
+  const bRes=document.getElementById('btn-resolve');
+  if(G.defWindow){
+    bPlay.style.display='none';bDraw.style.display='none';bPass.style.display='none';bRes.style.display='block';
+    bRes.disabled=G.selected.length===0;
+  } else {
+    bPlay.style.display='block';bDraw.style.display='block';bPass.style.display='block';bRes.style.display='none';
+    bPlay.disabled=G.selected.length===0||G.locked;
+    bDraw.disabled=G.locked||G.phase==='service'||G.energy<1;
+    bPass.disabled=G.locked||G.phase==='service'||G.possession!=='player';
+  }
+}
+
+function renderLog(){
+  document.getElementById('log-area').innerHTML=G.log.slice(0,6).map(l=>`<div class="log-entry">${l}</div>`).join('');
+}
+
+document.getElementById('btn-play').addEventListener('click',playCard);
+document.getElementById('btn-draw').addEventListener('click',buyCard);
+document.getElementById('btn-pass').addEventListener('click',()=>{if(!G.locked&&!G.pointDone&&G.phase!=='service')passBall(false);});
+document.getElementById('btn-resolve').addEventListener('click',resolveDefense);
+document.getElementById('btn-next').addEventListener('click',startPoint);
+document.getElementById('overlay-btn').addEventListener('click',()=>{document.getElementById('overlay').style.display='none';newGame();});
+
+newGame();
+</script>
+</body>
+</html>
