@@ -40,11 +40,6 @@
     <span id="freeball-notice">⚠ Bola livre!</span>
   </div>
 
-  <div id="hand-area">
-    <div id="hand-title">Mão</div>
-    <div id="hand-cards"></div>
-  </div>
-
   <div id="resolve-panel">
     <h3 id="resolve-header">⚡ Janela de defesa — selecione cartas e resolva</h3>
     <div id="timer-wrapper" style="display:none;">
@@ -57,6 +52,11 @@
     </div>
   </div>
 
+  <div id="hand-area">
+    <div id="hand-title">Mão</div>
+    <div id="hand-cards"></div>
+  </div>
+
   <div id="point-result">
     <div id="point-result-title"></div>
     <div id="point-result-desc"></div>
@@ -64,11 +64,17 @@
   </div>
 
   <div id="action-area">
-    <button class="btn btn-primary" id="btn-play" disabled>Jogar carta</button>
-    <button class="btn btn-draw" id="btn-draw" disabled>+1 Carta (1⚡)</button>
-    <button class="btn btn-secondary" id="btn-pass" disabled>Passar Bola</button>
-    <button class="btn btn-primary" id="btn-block" style="display:none" disabled>Tentar Bloqueio</button>
-    <button class="btn btn-danger" id="btn-resolve" style="display:none" disabled>Resolver Defesa</button>
+    <div class="action-btn-group">
+      <button class="btn btn-primary" id="btn-play" disabled>Jogar carta</button>
+      <button class="btn btn-primary" id="btn-block" style="display:none" disabled>Tentar Bloqueio</button>
+      <button class="btn btn-danger" id="btn-resolve" style="display:none" disabled>Resolver Defesa</button>
+    </div>
+    <div class="action-btn-group">
+      <button class="btn btn-draw" id="btn-draw" disabled>+1 Carta (1⚡)</button>
+    </div>
+    <div class="action-btn-group">
+      <button class="btn btn-secondary" id="btn-pass" disabled>Passar Bola</button>
+    </div>
     <div id="deck-info">Baralho: <span id="deck-count">0</span> | Desc: <span id="discard-count">0</span></div>
   </div>
 
