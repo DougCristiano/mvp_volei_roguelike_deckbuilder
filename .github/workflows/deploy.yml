@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ["main"] # Altere para "master" se sua branch principal tiver esse nome
+    branches: ["main"]
 
   workflow_dispatch:
 
@@ -31,7 +31,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Faz o upload de todo o diretório raiz
           path: '.'
 
       - name: Deploy to GitHub Pages
