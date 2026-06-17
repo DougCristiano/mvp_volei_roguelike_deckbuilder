@@ -27,7 +27,7 @@ const COMBO_SEQ=['reception','setting','attack'];
 let G={};
 
 function newGame(){
-  G={pPts:0,aPts:0,pSets:0,aSets:0,energy:10,maxEnergy:10,aiEnergy:10,maxAiEnergy:10,deck:[],hand:[],discard:[],phase:'service',possession:'player',nextServer:'player',comboIdx:0,atkBoost:0,aiDefMinus:0,aiAtkPow:0,selected:[],defWindow:false,blockWindow:false,locked:false,pointDone:false,log:[],blockTimerVal:0,blockInterval:null,aiJustDefended:false};
+  G={pPts:0,aPts:0,pSets:0,aSets:0,energy:10,maxEnergy:10,aiEnergy:10,maxAiEnergy:10,deck:[],hand:[],discard:[],phase:'service',possession:'player',nextServer:'player',comboIdx:0,atkBoost:0,aiDefMinus:0,aiAtkPow:0,selected:[],defWindow:false,blockWindow:false,locked:false,pointDone:false,log:[],blockTimerVal:0,blockInterval:null,defTimerVal:0,defInterval:null,aiJustDefended:false};
   buildDeck();startPoint();
 }
 
@@ -54,6 +54,7 @@ function startPoint(){
   G.possession=G.nextServer || 'player';
   G.comboIdx=0;G.atkBoost=0;G.aiDefMinus=0;G.selected=[];G.defWindow=false;G.blockWindow=false;G.locked=false;G.pointDone=false;G.aiJustDefended=false;
   clearInterval(G.blockInterval);
+  clearInterval(G.defInterval);
   hidePointResult();
 
   if(G.possession === 'player') {
@@ -209,8 +210,8 @@ function aiTurn(){
     G.energy=Math.min(G.energy+1,G.maxEnergy);G.locked=false;
     log(`⚡ IA ataca com poder ${G.aiAtkPow}! Bloquear ou Deixar passar?`);
     
-    // Inicia Timer de Bloqueio (5 segundos para decisão)
-    G.blockTimerVal = 5.0;
+    // Inicia Timer de Bloqueio (15 segundos para decisão)
+    G.blockTimerVal = 15.0;
     const bar = document.getElementById('timer-bar');
     if (bar) bar.style.width = "100%";
     clearInterval(G.blockInterval);
@@ -232,7 +233,7 @@ function tickBlockTimer() {
     resolveBlock(); // Resolve sem carta (deixa passar)
   }
   const bar = document.getElementById('timer-bar');
-  if (bar) bar.style.width = (G.blockTimerVal / 5.0 * 100) + "%";
+  if (bar) bar.style.width = (G.blockTimerVal / 15.0 * 100) + "%";
 }
 
 function resolveBlock(){
@@ -277,14 +278,35 @@ function resolveBlock(){
 function startDefenseWindow(){
     G.defWindow=true; G.blockWindow=false; G.phase='defense';
     log(`🛡 Selecione sua defesa contra poder ${G.aiAtkPow}.`);
-    clearTimeout(G._defTimer);
-    G._defTimer=setTimeout(()=>{if(G.defWindow&&!G.pointDone)autoResolve();},9000);
+    
+    // Inicia Timer de Defesa (15 segundos)
+    G.defTimerVal = 15.0;
+    const bar = document.getElementById('timer-bar');
+    if (bar) bar.style.width = "100%";
+    clearInterval(G.defInterval);
+    G.defInterval = setInterval(tickDefTimer, 100);
+    
     render();
+}
+
+function tickDefTimer() {
+  if (!G.defWindow || G.pointDone) {
+    clearInterval(G.defInterval);
+    return;
+  }
+  G.defTimerVal -= 0.1;
+  if (G.defTimerVal <= 0) {
+    G.defTimerVal = 0;
+    clearInterval(G.defInterval);
+    autoResolve();
+  }
+  const bar = document.getElementById('timer-bar');
+  if (bar) bar.style.width = (G.defTimerVal / 15.0 * 100) + "%";
 }
 
 function resolveDefense(){
   if(!G.defWindow||G.pointDone)return;
-  clearTimeout(G._defTimer);
+  clearInterval(G.defInterval);
   let defPow=0;
   
   [...G.selected].sort((a,b)=>b-a).forEach(idx=>{
@@ -311,6 +333,7 @@ function resolveDefense(){
 
 function autoResolve(){
   if(!G.defWindow||G.pointDone)return;
+  clearInterval(G.defInterval);
   G.defWindow=false;G.selected=[];
   log('⏱ Tempo! Defesa 0.');G.aPts++;
   G.nextServer = 'ai';
@@ -354,7 +377,7 @@ function resolvePlayerAttack(pow){
 }
 
 function endPoint(result,desc){
-  G.pointDone=true;G.locked=true;clearTimeout(G._defTimer);
+  G.pointDone=true;G.locked=true;clearInterval(G.blockInterval);clearInterval(G.defInterval);
   checkSet(result,desc);
 }
 
@@ -456,7 +479,7 @@ function renderResolve(){
   if((G.defWindow || G.blockWindow) && !G.pointDone){
     panel.style.display='block';
     header.textContent = G.blockWindow ? "✋ Janela de bloqueio — bloquear ou deixar passar?" : "🛡️ Janela de defesa — selecione cartas e resolva";
-    timerWrapper.style.display = G.blockWindow ? 'block' : 'none';
+    timerWrapper.style.display = 'block';
     
     document.getElementById('atk-val').textContent=G.aiAtkPow;
     let dp=0;G.selected.forEach(i=>{if(G.hand[i])dp+=G.hand[i].power;});
