@@ -24,14 +24,14 @@ This means types with fewer cards repeat; types with 6 cards (defense) cycle onl
 | setting | 3 | 7 |
 | attack | 5 | 7 |
 | block | 3 | 7 |
-| support | 2 | 7 |
+| coach | 2 | 7 |
 
 ## drawPhaseOptions() logic
 1. Clears the current hand to discard.
 2. Determines valid phases for the current context (defWindow/blockWindow/phase).
 3. Picks up to 3 matching cards from the END of the deck (stack, not random).
 4. If deck runs dry mid-draw, shuffles discard into deck and continues drawing.
-5. Support cards are excluded during service and block phases.
+5. Coach cards are excluded during service, block phases, and when `G.coachUsed` is true (1 use per point).
 
 ## Invariants
 - `clearHand()` must be called before any phase transition to avoid card leaks.

@@ -364,7 +364,8 @@ Tema praia, claro. Variáveis CSS em `:root`:
 ### Estrutura de Arquivos
 ```
 mvp_volei_roguelike_deckbuilder/
-├── index.html          # HTML structure and UI elements
+├── index.html          # HTML structure and UI elements (includes "Ver Coleção" link to catalog.html)
+├── catalog.html        # Card collection viewer — unlocked (22) + locked (~99) cards, filters, progress bar
 ├── style.css           # All CSS: theme, layout, responsiveness
 ├── AGENT.md            # This file — project source of truth
 │
@@ -703,6 +704,8 @@ Toda mensagem embute `data.energy = G.energy` para sincronizar energia do remete
 - `G.coachUsed: boolean` — limite de 1 uso de carta Coach por ponto
 - `docs/card-catalog.md` — catálogo de design com 120 cartas (6 categorias × 3 níveis); apenas design, sem código ainda
 - Campo `level` no schema de cartas (metadata para progressão futura)
+- `catalog.html` — página de coleção de cartas: 22 desbloqueadas (CARDS_DB) + ~99 bloqueadas (catálogo embutido), filtros por tipo/nível/busca, barra de progresso; link "Ver Coleção" adicionado ao menu principal de `index.html`
+- `docs/deck.md` — corrigido `'support'` → `'coach'` e documentada restrição `G.coachUsed`
 
 #### Removido
 - Tipo `'support'` — substituído por `'coach'` em todos os arquivos

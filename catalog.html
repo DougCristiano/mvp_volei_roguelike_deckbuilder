@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Coleção de Cartas — Ascension</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--sand);
+      color: var(--text-dark);
+      min-height: 100svh;
+      min-height: 100vh;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────────── */
+    #cat-header {
+      background: linear-gradient(135deg, var(--sky) 0%, #1a4f7a 100%);
+      color: #fff;
+      padding: 14px 20px env(safe-area-inset-right, 0) 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    #cat-header h1 {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      flex: 1;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.15);
+      border: 1.5px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .back-link:hover { background: rgba(255,255,255,0.28); }
+
+    #cat-header-count {
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.18);
+      padding: 4px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    /* ── Progress ─────────────────────────────────────────────────────── */
+    #progress-wrap {
+      padding: 14px 20px 0;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-mid);
+      margin-bottom: 6px;
+    }
+
+    .progress-track {
+      background: var(--sand-border);
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      background: linear-gradient(90deg, var(--teal) 0%, #27cc8a 100%);
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.5s ease;
+    }
+
+    /* ── Filters ──────────────────────────────────────────────────────── */
+    #filters {
+      padding: 14px 20px 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-divider {
+      width: 1px;
+      height: 28px;
+      background: var(--sand-border);
+      margin: 0 3px;
+    }
+
+    .fbtn {
+      padding: 5px 12px;
+      border: 2px solid var(--sand-border);
+      border-radius: 999px;
+      background: var(--card-bg);
+      color: var(--text-mid);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s, color 0.12s;
+      white-space: nowrap;
+      line-height: 1;
+    }
+    .fbtn:hover { border-color: var(--sky); color: var(--sky); }
+    .fbtn.on { background: var(--sky); border-color: var(--sky); color: #fff; }
+
+    /* Type-specific active colors */
+    .fbtn.on[data-t="attack"]  { background: #D85A30; border-color: #D85A30; }
+    .fbtn.on[data-t="defense"] { background: #3C3489; border-color: #3C3489; }
+    .fbtn.on[data-t="setting"] { background: #27500A; border-color: #27500A; }
+    .fbtn.on[data-t="block"]   { background: #7A2828; border-color: #7A2828; }
+    .fbtn.on[data-t="service"] { background: #633806; border-color: #633806; }
+    .fbtn.on[data-t="coach"]   { background: #8a5a00; border-color: #8a5a00; }
+
+    /* Level active colors */
+    .fbtn.on[data-l="basico"]        { background: #1D9E75; border-color: #1D9E75; }
+    .fbtn.on[data-l="intermediario"] { background: #C4901A; border-color: #C4901A; }
+    .fbtn.on[data-l="avancado"]      { background: #D85A30; border-color: #D85A30; }
+
+    #search-box {
+      margin-left: auto;
+    }
+
+    #search-input {
+      padding: 6px 14px;
+      border: 2px solid var(--sand-border);
+      border-radius: 999px;
+      background: var(--card-bg);
+      font-size: 13px;
+      color: var(--text-dark);
+      outline: none;
+      width: 200px;
+      transition: border-color 0.15s;
+    }
+    #search-input:focus { border-color: var(--sky); }
+
+    /* ── Grid ─────────────────────────────────────────────────────────── */
+    #results-info {
+      padding: 10px 20px 6px;
+      font-size: 12px;
+      color: var(--text-light);
+    }
+
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      padding: 0 20px 48px;
+    }
+
+    /* ── Card ─────────────────────────────────────────────────────────── */
+    .cc {
+      border-radius: 12px;
+      padding: 11px 10px 10px;
+      position: relative;
+      min-height: 170px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      border: 2px solid transparent;
+      transition: transform 0.14s, box-shadow 0.14s;
+    }
+
+    /* Unlocked */
+    .cc.ok {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.11);
+      cursor: default;
+    }
+    .cc.ok:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.17);
+      border-color: rgba(255,255,255,0.65);
+      z-index: 2;
+    }
+
+    /* Locked */
+    .cc.lk {
+      background: linear-gradient(135deg, #3c3830 0%, #2a2420 100%) !important;
+      border-color: #4c4840;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      opacity: 0.72;
+      cursor: default;
+    }
+    .cc.lk:hover {
+      opacity: 0.88;
+      transform: translateY(-2px);
+    }
+
+    /* Card elements */
+    .cc-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    .cc-name {
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.3;
+      letter-spacing: -0.02em;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      flex: 1;
+    }
+    .cc.ok  .cc-name { color: var(--text-dark); }
+    .cc.lk  .cc-name { color: #b8a888; }
+
+    .cc-cost {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--energy-gold) 0%, #C4901A 100%);
+      color: #1a1000;
+      font-size: 11px; font-weight: 900;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 5px rgba(212,160,23,0.4);
+      border: 2px solid rgba(255,255,255,0.6);
+    }
+
+    .cc-power-row {
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+    }
+    .cc-power {
+      font-family: 'Arial Black', monospace;
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--text-dark);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      line-height: 1;
+    }
+    .cc-power-lbl {
+      font-size: 9px;
+      color: var(--text-light);
+    }
+
+    .cc-desc {
+      font-size: 9px;
+      color: var(--text-light);
+      line-height: 1.4;
+      font-style: italic;
+      opacity: 0.9;
+      flex: 1;
+    }
+
+    .cc-lock {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      opacity: 0.35;
+    }
+
+    .cc-footer {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 3px;
+    }
+
+    .lvl-badge {
+      font-size: 8px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      line-height: 1.2;
+    }
+    .cc.ok .lvl-basico        { background: rgba(39,158,117,0.2); color: #1a7a52; }
+    .cc.ok .lvl-intermediario { background: rgba(212,160,23,0.2); color: #8a6000; }
+    .cc.ok .lvl-avancado      { background: rgba(216,90,48,0.2);  color: var(--coral); }
+    .cc.lk .lvl-badge         { background: rgba(255,255,255,0.08); color: #a09870; }
+
+    .bonus-tag {
+      font-size: 8px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.4);
+      color: var(--text-dark);
+    }
+
+    /* Type label on locked card */
+    .type-badge {
+      font-size: 8px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.07);
+      color: #a09870;
+    }
+
+    /* ── Empty state ──────────────────────────────────────────────────── */
+    #empty {
+      grid-column: 1/-1;
+      text-align: center;
+      padding: 64px 20px;
+      color: var(--text-light);
+    }
+    #empty .ei { font-size: 52px; margin-bottom: 12px; }
+    #empty p   { font-size: 15px; }
+
+    /* ── Responsive ───────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      #cat-header h1 { font-size: 16px; }
+      #filters { padding: 10px 14px 0; gap: 6px; }
+      #grid { grid-template-columns: repeat(auto-fill, minmax(106px, 1fr)); gap: 8px; padding: 0 14px 40px; }
+      #search-box { margin-left: 0; width: 100%; }
+      #search-input { width: 100%; }
+      .filter-divider { display: none; }
+    }
+    @media (max-width: 375px) {
+      #grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+
+<header id="cat-header">
+  <a href="index.html" class="back-link">← Voltar</a>
+  <h1>📋 Coleção</h1>
+  <div id="cat-header-count">…</div>
+</header>
+
+<div id="progress-wrap">
+  <div class="progress-meta">
+    <span id="prog-label">0 / 0 cartas desbloqueadas</span>
+    <span id="prog-pct">0%</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+  </div>
+</div>
+
+<div id="filters">
+  <div class="filter-row" id="type-row">
+    <button class="fbtn on" data-t="all">Todos</button>
+    <button class="fbtn" data-t="attack">⚡ Ataque</button>
+    <button class="fbtn" data-t="defense">🛡️ Defesa</button>
+    <button class="fbtn" data-t="setting">🤲 Levant.</button>
+    <button class="fbtn" data-t="block">🧱 Bloqueio</button>
+    <button class="fbtn" data-t="service">🏐 Saque</button>
+    <button class="fbtn" data-t="coach">📋 Treinador</button>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-row" id="level-row">
+    <button class="fbtn on" data-l="all">Todos os Níveis</button>
+    <button class="fbtn" data-l="basico">🟢 Básico</button>
+    <button class="fbtn" data-l="intermediario">🟡 Inter.</button>
+    <button class="fbtn" data-l="avancado">🔴 Avançado</button>
+  </div>
+  <div id="search-box">
+    <input type="search" id="search-input" placeholder="🔍 Buscar carta…" autocomplete="off">
+  </div>
+</div>
+
+<div id="results-info"></div>
+<div id="grid"></div>
+
+<script src="data.js"></script>
+<script>
+// ── Locked card catalog (100 cards not yet in CARDS_DB) ───────────────────────
+const LOCKED_CARDS = [
+  // ── ATAQUE ─────────────────────────────────────────────────────────────────
+  // Básico
+  {name:'Ataque Frontal',       type:'attack', level:'basico',       desc:'Cortada direta de frente para o centro da quadra adversária.'},
+  {name:'Bola Alta',            type:'attack', level:'basico',       desc:'Ataque lento e alto que força o adversário a se posicionar.'},
+  {name:'Rolinho',              type:'attack', level:'basico',       desc:'Toque suave com rotação que passa pelos dedos do bloqueador.'},
+  {name:'Paralelinha',          type:'attack', level:'basico',       desc:'Ataque paralelo rente à linha lateral. Clássico e eficiente.'},
+  {name:'Bola Mole',            type:'attack', level:'basico',       desc:'Dink controlado que cai logo atrás da rede.'},
+  {name:'Cutback',              type:'attack', level:'basico',       desc:'Cortada que muda de direção no último momento. Engana defensores.'},
+  {name:'Ataque Aberto',        type:'attack', level:'basico',       desc:'Cortada larga pelo lado oposto ao bloqueador.'},
+  {name:'Ataque de Segunda',    type:'attack', level:'basico',       desc:'Atacada diretamente do segundo toque, surpreendendo o adversário.'},
+  // Intermediário
+  {name:'Pipe',                 type:'attack', level:'intermediario', desc:'Ataque do ponto médio de fundo, entre os dois adversários.'},
+  {name:'Bola Quicada',         type:'attack', level:'intermediario', desc:'Ataque com forte rotação que quica próximo à linha de fundo.'},
+  {name:'Cortada de Potência',  type:'attack', level:'intermediario', desc:'Cortada máxima com todo o peso do corpo. Alta velocidade.'},
+  {name:'Tabela no Bloqueio',   type:'attack', level:'intermediario', desc:'Ataque intencional no braço do bloqueador para desviar para fora.'},
+  {name:'Boicote na Linha',     type:'attack', level:'intermediario', desc:'Simula ir para o centro mas desvia para a linha no último segundo.'},
+  {name:'Contra-Ataque',        type:'attack', level:'intermediario', desc:'Exploração rápida do espaço depois de uma boa defesa.'},
+  {name:'Bola Espalmada',       type:'attack', level:'intermediario', desc:'Ataque de palma aberta com controle de direção preciso.'},
+  {name:'Cortada Rápida',       type:'attack', level:'intermediario', desc:'Timing perfeito no pico do salto, antes do bloqueador reagir.'},
+  {name:'Ataque de Precisão',   type:'attack', level:'intermediario', desc:'Atacada calculada para os centímetros finais da linha lateral.'},
+  {name:'Bola de Mão',          type:'attack', level:'intermediario', desc:'Toque rápido com a ponta dos dedos logo atrás da rede.'},
+  // Avançado
+  {name:'Bomba',                type:'attack', level:'avancado',     desc:'Cortada com salto máximo e total extensão do braço. Imparável.'},
+  {name:'Cortada de Velocidade',type:'attack', level:'avancado',     desc:'Explosão em velocidade máxima. O adversário mal vê a bola passar.'},
+  {name:'Ataque Sobreposto',    type:'attack', level:'avancado',     desc:'Coordenação perfeita: usa o espaço criado pelo parceiro.'},
+  {name:'Bola Curta',           type:'attack', level:'avancado',     desc:'Ataque preciso logo após a rede, explorando o espaço atrás do bloqueador.'},
+  {name:'Boicote Cruzado',      type:'attack', level:'avancado',     desc:'Muda de diagonal no ar. O adversário nunca sabe onde vai cair.'},
+  {name:'Especialista em Bloqueio', type:'attack', level:'avancado', desc:'Ataca exatamente onde o bloqueador não está.'},
+  {name:'Ataque Perfeito',      type:'attack', level:'avancado',     desc:'Posição, timing e direção em harmonia absoluta.'},
+  // ── DEFESA ─────────────────────────────────────────────────────────────────
+  // Básico
+  {name:'Recepção Base',        type:'defense', level:'basico',      desc:'Posição defensiva equilibrada: pés afastados, joelhos dobrados.'},
+  {name:'Defesa Lateral',       type:'defense', level:'basico',      desc:'Mergulho lateral para bolas no canto da quadra.'},
+  {name:'Manchete Baixa',       type:'defense', level:'basico',      desc:'Plataforma próxima ao chão para bolas rasteiras.'},
+  {name:'Cobertura de Bloqueio',type:'defense', level:'basico',      desc:'Posicionamento para pegar a bola que desvia do bloqueio.'},
+  {name:'Defesa em Pé',         type:'defense', level:'basico',      desc:'Defesa simples sem mergulho — para bolas altas e lentas.'},
+  {name:'Salto de Defesa',      type:'defense', level:'basico',      desc:'Pequeno salto para interceptar bola alta no momento certo.'},
+  {name:'Bola Salva',           type:'defense', level:'basico',      desc:'Defesa de último segundo. A bola que parecia perdida fica no campo.'},
+  // Intermediário
+  {name:'Defesa Antecipada',    type:'defense', level:'intermediario', desc:'Você leu o levantamento adversário antes do ataque acontecer.'},
+  {name:'Defesa de Velocidade', type:'defense', level:'intermediario', desc:'Reação rápida para ataques de alta velocidade.'},
+  {name:'Cobertura Total',      type:'defense', level:'intermediario', desc:'Defesa que cobre todas as zonas da quadra em uma jogada.'},
+  {name:'Manchete de Corrida',  type:'defense', level:'intermediario', desc:'Arrancada lateral para alcançar bola que parecia fora de alcance.'},
+  {name:'Rotação Defensiva',    type:'defense', level:'intermediario', desc:'Troca coordenada de posição para cobrir o espaço aberto.'},
+  {name:'Defesa Lateral Profunda', type:'defense', level:'intermediario', desc:'Defesa que cobre as linhas laterais com profundidade de campo.'},
+  {name:'Bloqueio Parcial',     type:'defense', level:'intermediario', desc:'Você toca na bola no bloqueio — ela desacelera e você ainda defende.'},
+  {name:'Defesa de Reação',     type:'defense', level:'intermediario', desc:'Reflexo puro. Você não pensou — seu corpo foi.'},
+  {name:'Recepção Flutuante',   type:'defense', level:'intermediario', desc:'Manchete suave que sobe a bola perfeitamente para o levantador.'},
+  {name:'Cobertura de Bola Curta', type:'defense', level:'intermediario', desc:'Antecipação de bolas que caem logo atrás da rede.'},
+  // Avançado
+  {name:'Defesa Acrobática',    type:'defense', level:'avancado',    desc:'Mergulho com giro lateral, salvando a bola com um único braço.'},
+  {name:'Manchete com Giro',    type:'defense', level:'avancado',    desc:'Rotação do corpo no ar para ajustar o ângulo de defesa.'},
+  {name:'Defesa Total',         type:'defense', level:'avancado',    desc:'Leitura + posicionamento + execução. A defesa perfeita como sistema.'},
+  {name:'Defesa Sobreposta',    type:'defense', level:'avancado',    desc:'Cobertura dupla usando o parceiro como ponto de referência.'},
+  {name:'Defesa de Especialista', type:'defense', level:'avancado', desc:'Técnica refinada por anos. Nenhum ataque é surpreendente.'},
+  {name:'Cobertura Impossível', type:'defense', level:'avancado',   desc:'A bola voa para além do alcance humano — e você a salva.'},
+  {name:'Defesa Perfeita',      type:'defense', level:'avancado',   desc:'Posicionamento, leitura, timing e execução — nada falha.'},
+  // ── LEVANTAMENTO ───────────────────────────────────────────────────────────
+  // Básico
+  {name:'Levantamento de Frente', type:'setting', level:'basico',   desc:'Toque direto de frente, sem variação. Previsível mas preciso.'},
+  {name:'Levantamento Cruzado', type:'setting', level:'basico',     desc:'Toque que envia a bola para o lado oposto, confundindo o bloqueador.'},
+  {name:'Toque de Segundo',     type:'setting', level:'basico',     desc:'Segundo toque controlado enviando ao atacante.'},
+  {name:'Levantamento em Pé',   type:'setting', level:'basico',     desc:'Levantamento executado sem salto, pés firmes no chão.'},
+  {name:'Devolução de Defesa',  type:'setting', level:'basico',     desc:'Conversão direta da manchete em levantamento sem perder controle.'},
+  {name:'Levantamento Lateral', type:'setting', level:'basico',     desc:'Toque lateral para abrir ângulo de ataque.'},
+  // Intermediário
+  {name:'Levantamento Rápido (Int.)', type:'setting', level:'intermediario', desc:'Bola enviada antes do bloqueador se posicionar. Velocidade como vantagem.'},
+  {name:'Levantamento de Mão Cheia', type:'setting', level:'intermediario', desc:'Toque aberto com as duas mãos, controlando perfeitamente a trajetória.'},
+  {name:'Levantamento de Plataforma', type:'setting', level:'intermediario', desc:'Levantamento com manchete para situações onde o toque seria difícil.'},
+  {name:'Levantamento Surpresa', type:'setting', level:'intermediario', desc:'Decisão de última hora: a bola vai onde o bloqueador menos esperava.'},
+  {name:'Levantamento de Corrida', type:'setting', level:'intermediario', desc:'Movimento em sprint até o ponto de contato. Impede a bola de cair.'},
+  {name:'Bola de Segundo Tempo', type:'setting', level:'intermediario', desc:'Levantamento tardio, fora do timing esperado. Confunde o bloqueio.'},
+  {name:'Levantamento Baixo',   type:'setting', level:'intermediario', desc:'Toque tenso e preciso próximo à rede.'},
+  {name:'Levantamento Surpresa de Costas', type:'setting', level:'intermediario', desc:'Levantamento para trás em movimento. A jogada mais difícil de ler.'},
+  // Avançado
+  {name:'Levantamento Enganador', type:'setting', level:'avancado', desc:'Movimento falso seguido de toque perfeito. Adversário nunca sabe.'},
+  {name:'Superlevantamento',    type:'setting', level:'avancado',   desc:'Toque de perfeição técnica. Bola colocada exatamente onde precisa.'},
+  {name:'Bola de Ouro',         type:'setting', level:'avancado',   desc:'O levantamento que todos lembram: timing, posição e velocidade perfeitos.'},
+  {name:'Levantamento de Alta Velocidade', type:'setting', level:'avancado', desc:'Segundo toque em fração de segundo. Impossível de antecipar.'},
+  {name:'Levantamento Decisivo',type:'setting', level:'avancado',   desc:'No momento que mais importa, o segundo toque é impecável.'},
+  // ── BLOQUEIO ───────────────────────────────────────────────────────────────
+  // Básico
+  {name:'Bloqueio Lateral',     type:'block', level:'basico',       desc:'Salto lateral para cobrir ataques na ponta.'},
+  {name:'Bloqueio de Salto',    type:'block', level:'basico',       desc:'Timing perfeito de salto para interceptar no pico do ataque.'},
+  {name:'Bloqueio de Reação',   type:'block', level:'basico',       desc:'Sem leitura — puro reflexo quando a bola já está em movimento.'},
+  {name:'Bloqueio Fechado',     type:'block', level:'basico',       desc:'Braços totalmente fechados, sem espaço para a bola passar.'},
+  {name:'Bloqueio Aberto',      type:'block', level:'basico',       desc:'Mãos abertas direcionando a bola para zona segura de defesa.'},
+  // Intermediário
+  {name:'Bloqueio de Linha',    type:'block', level:'intermediario', desc:'Fechando a linha lateral — força o adversário para a diagonal.'},
+  {name:'Bloqueio em Diagonal', type:'block', level:'intermediario', desc:'Fechando a diagonal — cobre o ângulo mais usado pelos atacantes.'},
+  {name:'Bloqueio de Banda',    type:'block', level:'intermediario', desc:'Bola desviada para fora pelo braço do bloqueador. Armadilha.'},
+  {name:'Leitura do Levantador',type:'block', level:'intermediario', desc:'Você já sabe para onde vai o levantamento antes do segundo toque.'},
+  {name:'Bloqueio de Velocidade', type:'block', level:'intermediario', desc:'Salto instantâneo antes do atacante reagir.'},
+  {name:'Bloqueio de Cobertura',type:'block', level:'intermediario', desc:'Você cobre a bola mesmo que ela passe pelo bloqueio.'},
+  {name:'Bloqueio Duplo',       type:'block', level:'intermediario', desc:'Coordenação dos dois jogadores saltando juntos para fechar a rede.'},
+  {name:'Bloqueio Surpresa',    type:'block', level:'intermediario', desc:'Você sobe quando o adversário não esperava nenhum bloqueio.'},
+  // Avançado
+  {name:'Bloqueio Perfeito',    type:'block', level:'avancado',     desc:'Posição, timing e alcance perfeitos. Nada passa.'},
+  {name:'Paredão Perfeito',     type:'block', level:'avancado',     desc:'O bloqueio que os adversários comentam por semanas.'},
+  {name:'Bloqueio Definitivo',  type:'block', level:'avancado',     desc:'Não importa o ataque — você bloqueia.'},
+  {name:'Bloqueio de Especialista', type:'block', level:'avancado', desc:'Décadas de leitura de ataque concentradas em um único salto.'},
+  {name:'Bloqueio de Alta Performance', type:'block', level:'avancado', desc:'Potência máxima no salto. Braços além da rede, sem abertura.'},
+  {name:'Bloqueio Total',       type:'block', level:'avancado',     desc:'O ataque adversário encontra uma parede. Literalmente.'},
+  // ── SAQUE ──────────────────────────────────────────────────────────────────
+  // Básico
+  {name:'Saque Controlado',     type:'service', level:'basico',     desc:'Técnica básica sobre cabeça com foco em precisão.'},
+  {name:'Saque Lateral',        type:'service', level:'basico',     desc:'Movimento lateral do braço criando trajetória difícil de ler.'},
+  {name:'Saque de Iniciante',   type:'service', level:'basico',     desc:'O primeiro saque que todo atleta aprende. Seguro, sem potência.'},
+  // Intermediário
+  {name:'Saque de Salto',       type:'service', level:'intermediario', desc:'Corrida, salto e saque acima da rede. O mais poderoso tecnicamente.'},
+  {name:'Saque de Pressão',     type:'service', level:'intermediario', desc:'Saque direcionado às fraquezas do adversário — canto, linha de fundo.'},
+  {name:'Saque Curto',          type:'service', level:'intermediario', desc:'Bola que cai logo após a rede, forçando o adversário a avançar.'},
+  {name:'Saque em Z',           type:'service', level:'intermediario', desc:'Trajetória em Z que desorienta completamente o receptor.'},
+  {name:'Saque de Linha',       type:'service', level:'intermediario', desc:'Bola rente à linha lateral — o ângulo mais difícil de receber.'},
+  // Avançado
+  {name:'Saque Overhand Potente', type:'service', level:'avancado', desc:'Saque por cima com força máxima. A bola mal é vista pelo receptor.'},
+  {name:'Saque de Salto com Giro', type:'service', level:'avancado', desc:'Combinação de salto e rotação. Trajetória completamente imprevisível.'},
+  {name:'Saque Ace',            type:'service', level:'avancado',   desc:'O saque direto para ponto. Precisão e velocidade combinadas.'},
+  {name:'Saque de Alta Performance', type:'service', level:'avancado', desc:'Técnica refinada: máximo poder sem abrir mão do controle.'},
+  {name:'Saque Definitivo',     type:'service', level:'avancado',   desc:'O saque praticado 10.000 vezes. Na hora que importa, é perfeito.'},
+];
+
+// ── Build ALL_CARDS ───────────────────────────────────────────────────────────
+const unlockedNames = new Set(CARDS_DB.map(c => c.name));
+const ALL_CARDS = [
+  ...CARDS_DB.map(c => ({ ...c, unlocked: true })),
+  ...LOCKED_CARDS.filter(c => !unlockedNames.has(c.name)).map(c => ({ ...c, unlocked: false })),
+];
+
+const TOTAL_CARDS    = ALL_CARDS.length;
+const UNLOCKED_COUNT = CARDS_DB.length;
+
+// ── Display helpers ───────────────────────────────────────────────────────────
+const TYPE_ICON = {
+  attack:'⚡', defense:'🛡️', setting:'🤲', block:'🧱', service:'🏐', coach:'📋',
+};
+const TYPE_NAME = {
+  attack:'Ataque', defense:'Defesa', setting:'Levant.', block:'Bloqueio', service:'Saque', coach:'Treinador',
+};
+const LVL_LABEL = { basico:'Básico', intermediario:'Inter.', avancado:'Avançado' };
+const BONUS_LABEL = {
+  energy2:'⚡+2', atkBoost3:'ATK+3', atkBoost6:'ATK+6', aiDefMinus2:'DEF−2', draw1:'+1 Carta',
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let fType  = 'all';
+let fLevel = 'all';
+let fSearch = '';
+
+// ── Filter & Render ───────────────────────────────────────────────────────────
+function visible() {
+  return ALL_CARDS.filter(c => {
+    if (fType   !== 'all' && c.type  !== fType)  return false;
+    if (fLevel  !== 'all' && c.level !== fLevel) return false;
+    if (fSearch && !c.name.toLowerCase().includes(fSearch.toLowerCase())) return false;
+    return true;
+  });
+}
+
+function cardHTML(c) {
+  if (!c.unlocked) {
+    return `<div class="cc lk" title="${c.desc || ''}">
+      <div class="cc-top"><span class="cc-name">${c.name}</span></div>
+      <div class="cc-lock">🔒</div>
+      <div class="cc-footer">
+        <span class="lvl-badge level-${c.level}">${LVL_LABEL[c.level]}</span>
+        <span class="type-badge">${TYPE_ICON[c.type]}${TYPE_NAME[c.type]}</span>
+      </div>
+    </div>`;
+  }
+  const bonus = c.bonus && BONUS_LABEL[c.bonus]
+    ? `<span class="bonus-tag">${BONUS_LABEL[c.bonus]}</span>` : '';
+  const power = c.power !== undefined
+    ? `<div class="cc-power-row"><span class="cc-power">${c.power}</span><span class="cc-power-lbl">poder</span></div>` : '';
+  return `<div class="cc ok type-${c.type}">
+    <div class="cc-top">
+      <span class="cc-name">${c.name}</span>
+      ${c.cost !== undefined ? `<span class="cc-cost">${c.cost}</span>` : ''}
+    </div>
+    ${power}
+    <div class="cc-desc">${c.desc || ''}</div>
+    <div class="cc-footer">
+      <span class="lvl-badge lvl-${c.level}">${LVL_LABEL[c.level]}</span>
+      ${bonus}
+    </div>
+  </div>`;
+}
+
+function render() {
+  const vis = visible();
+  const unlocked = vis.filter(c =>  c.unlocked);
+  const locked   = vis.filter(c => !c.unlocked);
+  const ordered  = [...unlocked, ...locked];
+
+  const grid = document.getElementById('grid');
+  if (ordered.length === 0) {
+    grid.innerHTML = `<div id="empty"><div class="ei">🏐</div><p>Nenhuma carta encontrada.</p></div>`;
+  } else {
+    grid.innerHTML = ordered.map(cardHTML).join('');
+  }
+
+  document.getElementById('results-info').textContent =
+    `${vis.length} carta${vis.length !== 1 ? 's' : ''} — ${unlocked.length} desbloqueada${unlocked.length !== 1 ? 's' : ''}, ${locked.length} bloqueada${locked.length !== 1 ? 's' : ''}`;
+}
+
+function initProgress() {
+  const pct = Math.round(UNLOCKED_COUNT / TOTAL_CARDS * 100);
+  document.getElementById('prog-label').textContent = `${UNLOCKED_COUNT} / ${TOTAL_CARDS} cartas desbloqueadas`;
+  document.getElementById('prog-pct').textContent   = `${pct}%`;
+  document.getElementById('prog-fill').style.width  = pct + '%';
+  document.getElementById('cat-header-count').textContent = `${UNLOCKED_COUNT}/${TOTAL_CARDS}`;
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
+document.getElementById('type-row').addEventListener('click', e => {
+  const btn = e.target.closest('.fbtn');
+  if (!btn) return;
+  document.querySelectorAll('#type-row .fbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  fType = btn.dataset.t;
+  render();
+});
+
+document.getElementById('level-row').addEventListener('click', e => {
+  const btn = e.target.closest('.fbtn');
+  if (!btn) return;
+  document.querySelectorAll('#level-row .fbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  fLevel = btn.dataset.l;
+  render();
+});
+
+document.getElementById('search-input').addEventListener('input', e => {
+  fSearch = e.target.value;
+  render();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+initProgress();
+render();
+</script>
+</body>
+</html>
