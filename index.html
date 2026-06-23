@@ -143,6 +143,16 @@
 </div>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="game.js"></script>
+<!-- Load order matters: each file uses globals defined by files above it -->
+<script src="data.js"></script>
+<script src="audio.js"></script>
+<script src="state.js"></script>
+<script src="deck.js"></script>
+<script src="render.js"></script>
+<script src="input.js"></script>
+<script src="combat.js"></script>
+<script src="ai.js"></script>
+<script src="multiplayer.js"></script>
+<script src="main.js"></script>
 </body>
 </html>

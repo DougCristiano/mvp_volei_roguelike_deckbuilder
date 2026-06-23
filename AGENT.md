@@ -65,21 +65,34 @@ Jogo de **gerenciamento e estratégia de vôlei de praia** onde o jogador assume
 ### Fluxo de um Rally (modo AI)
 ```
 Saque do Jogador
-  ├── Erro (chance proporcional ao poder) → Ponto da IA
+  ├── Erro (5% + power*3%) → out ou net (50/50) → Ponto da IA
   └── Saque cruzou a rede
         └── IA responde (defesa + levantamento + ataque)
               └── Janela de Bloqueio (15s)
-                    ├── Jogador bloqueia → resultado probabilístico (20% ponto / 20% fora / 30% amortece / 30% continua)
+                    ├── Jogador bloqueia → 20% ponto / 20% fora / 30% amortece / 30% continua
                     └── Sem bloqueio → Janela de Defesa (15s)
-                          ├── defPow >= aiAtkPow → Defesa OK → Levantamento → Ataque
-                          │     └── Ataque resolve contra defesa da IA → Ponto ou contra-ataque
-                          └── defPow < aiAtkPow → Ponto da IA
+                          └── gap = defPow − aiAtkPow → quality tier (getDefenseQuality)
+                                ├── Math.random() < successRate → Defesa OK (quality bonus) → Levantamento → Ataque
+                                │     └── Ataque resolve contra defesa da IA (mesmo sistema de gap/quality)
+                                └── falha → Ponto da IA
 
 Saque da IA
   └── Janela de Defesa do Jogador (15s)
-        ├── defPow >= aiAtkPow → Posse do Jogador → Levantamento → Ataque
-        └── defPow < aiAtkPow → Ponto da IA
+        └── gap = defPow − aiAtkPow → quality tier
+              ├── success → Posse do Jogador + nextAttackBonus → Levantamento → Ataque
+              └── falha → Ponto da IA
 ```
+
+#### Sistema de Qualidade de Defesa (gap-based)
+| Tier | Gap | Taxa de Sucesso | nextAtkBonus |
+|---|---|---|---|
+| ⭐ Crítica | ≥ 4 | 100% | +3 |
+| ✅ Boa | 0 – 3 | 95% | +1 |
+| ⚠️ Ruim | -3 – -1 | 30% | -1 |
+| ❌ Miss | ≤ -4 | 0% | -2 |
+
+`nextAttackBonus` é aplicado automaticamente no próximo ataque do time que defendeu.
+Tanto o jogador (`G.nextAttackBonus`) quanto a IA (`G.aiNextAtkBonus`) acumulam o bônus.
 
 ### Fases do Rally (PHASE_NAMES)
 | Fase | ID | Descrição |
@@ -158,13 +171,18 @@ Saque da IA
 | set2 | Levantamento Rápido | 2 | 0 | atkBoost6 |
 | set3 | Levantamento de Costas | 1 | 0 | aiDefMinus2 |
 
-#### Ataque (4 cartas)
-| id | Nome | Custo | Poder | Bônus |
-|---|---|---|---|---|
-| atk1 | Cortada Diagonal | 2 | 6 | — |
-| atk2 | Ponta Aberta | 1 | 3 | — |
-| atk3 | Bola na Linha | 3 | 9 | — |
-| atk4 | Finta | 1 | 2 | aiDefMinus2 |
+#### Ataque (5 cartas)
+| id | Nome | Custo | Poder | Bônus | outcomes (point/blocked/out/net) |
+|---|---|---|---|---|---|
+| atk1 | Cortada Diagonal | 2 | 6 | — | 50/15/25/10 |
+| atk2 | Ponta Aberta | 1 | 3 | — | 55/30/5/10 |
+| atk3 | Bola na Linha | 3 | 9 | — | 45/25/20/10 |
+| atk4 | Finta | 1 | 2 | aiDefMinus2 | 60/15/10/15 |
+| atk5 | Ataque Fundo | 2 | 5 | — | 40/10/35/15 |
+
+> Note: `outcomes` are stored in card data but not currently consumed by combat resolution.
+> The gap-based defense quality system determines whether AI defends or not.
+> `outcomes` are reserved for a future "attack error" mechanic.
 
 #### Bloqueio (3 cartas)
 | id | Nome | Custo | Poder | Bônus |
@@ -189,6 +207,16 @@ Saque da IA
 ---
 
 ## Mecânicas Confirmadas
+
+### Qualidade de Defesa ✅ Implementada
+- Sistema de gap entre poder de defesa e poder de ataque
+- 4 tiers: Crítica (gap ≥4, 100% sucesso, +3 bônus), Boa (0–3, 95%, +1), Ruim (-3–-1, 30%, -1), Miss (≤-4, 0%, -2)
+- `nextAttackBonus` para jogador, `aiNextAtkBonus` para IA — carry-forward automático
+- Feedback visual via emoji e gap explícito no log
+
+### Saque com Tipos de Erro ✅ Implementada
+- Erro de saque dividido em "para fora" e "na rede" (50/50)
+- Válido para jogador e IA; campo `errorType: 'out'|'net'` no multiplayer
 
 ### Energia ✅ Implementada
 - Cada equipe possui energia máxima de 10
@@ -331,11 +359,58 @@ Tema praia, claro. Variáveis CSS em `:root`:
 ### Estrutura de Arquivos
 ```
 mvp_volei_roguelike_deckbuilder/
-├── index.html      # Estrutura HTML, elementos da UI
-├── style.css       # Todo o CSS: tema, layout, responsividade
-├── game.js         # Toda a lógica: estado, IA, eventos, render, multiplayer
-└── AGENT.md        # Este arquivo
+├── index.html          # HTML structure and UI elements
+├── style.css           # All CSS: theme, layout, responsiveness
+├── AGENT.md            # This file — project source of truth
+│
+├── data.js             # CARDS_DB, PHASE_NAMES, COMBO_SEQ, DEFENSE_QUALITY_RANGES
+├── audio.js            # Web Audio API: playSound(), sounds{}
+├── state.js            # G (global state), log(), newGame(), startPoint()
+├── deck.js             # buildDeck(), shuffle(), resetDeck(), clearHand(), drawPhaseOptions()
+├── render.js           # render(), renderHand(), renderResolve(), renderActions(), renderLog()
+├── input.js            # canPlay(), selectCard(), playCard(), rerollOption(), applyBonus(), updateCombo()
+├── combat.js           # getDefenseQuality(), resolveDefense(), resolveBlock(), resolvePlayerAttack(),
+│                       # startDefenseWindow(), endPoint(), checkSet(), passBall(), checkFreeball()
+├── ai.js               # aiTurn() — AI decision making
+├── multiplayer.js      # sendData(), initializePeer(), connectToPeer(), setupConnectionHandlers()
+├── main.js             # DOM event bindings, menu logic (no game logic here)
+│
+├── game.js             # ⚠ DEPRECATED — historical reference, not loaded by index.html
+│
+└── docs/               # Per-module documentation for agents
+    ├── data.md
+    ├── audio.md
+    ├── state.md
+    ├── deck.md
+    ├── render.md
+    ├── input.md
+    ├── combat.md
+    ├── ai.md
+    └── multiplayer.md
 ```
+
+### Script load order (index.html)
+```
+data.js → audio.js → state.js → deck.js → render.js
+→ input.js → combat.js → ai.js → multiplayer.js → main.js
+```
+All files share a global scope (no ES modules). Functions declared in file A are available
+to file B if A appears earlier in the load order, OR if the call happens at runtime
+(not at module initialization time). Circular runtime references are fine.
+
+### Agent file ownership
+| Agent role | Primary file | Also touches |
+|---|---|---|
+| Data / Balancing | `data.js` | `AGENT.md` (card table) |
+| Audio | `audio.js` | — |
+| State / Lifecycle | `state.js` | — |
+| Deck / Cards | `deck.js` | — |
+| UI / Render | `render.js` | `index.html`, `style.css` |
+| Input / UX | `input.js` | `render.js` (minor) |
+| Combat / Mechanics | `combat.js` | `data.js` (DEFENSE_QUALITY_RANGES) |
+| AI | `ai.js` | `combat.js` (startDefenseWindow) |
+| Multiplayer | `multiplayer.js` | `combat.js` (endPoint) |
+| Infra / Bootstrap | `main.js` | `index.html` |
 
 ### Estado Global (`G`)
 ```js
@@ -371,9 +446,11 @@ G = {
   blockTimerVal, blockInterval,
 
   // Bônus acumulados
-  atkBoost,      // Bônus acumulado no próximo ataque
-  aiDefMinus,    // Penalidade na defesa da IA
-  aiAtkPow,      // Poder do ataque atual da IA (usado na resolução)
+  atkBoost,           // Bônus de levantamento no próximo ataque
+  nextAttackBonus,    // Bônus/malus de qualidade de defesa (jogador → próximo ataque)
+  aiNextAtkBonus,     // Bônus/malus de qualidade de defesa (IA → próximo ataque)
+  aiDefMinus,         // Penalidade na defesa da IA (de carta bonus)
+  aiAtkPow,           // Poder do ataque atual da IA (usado na resolução)
 
   // Combo
   comboIdx: 0|1|2|3,  // Posição no COMBO_SEQ
@@ -381,12 +458,17 @@ G = {
   // Flags de estado
   aiJustDefended: boolean,   // IA já fez o 1º toque
   isDefendingServe: boolean, // Defesa é de saque (muda label)
+  defenseQuality: object|null, // Última qualidade de defesa resolvida
 
   // Log
   log: string[],  // máx. 40 entradas, mais novo no índice 0
 
   // Saque
   nextServer: 'player'|'ai',
+
+  // Multiplayer sync (temporary flags)
+  isNetworkReceiver: boolean,
+  networkPointData: object|null,
 }
 ```
 
@@ -493,18 +575,68 @@ Toda mensagem embute `data.energy = G.energy` para sincronizar energia do remete
 
 | ID | Problema | Arquivo | Impacto | Solução Sugerida |
 |---|---|---|---|---|
-| DT-01 | `CARDS_DB` hardcoded em JS | `game.js:1-28` | Dificulta adição de cartas sem tocar no código | Mover para `cards.json` e carregar via `fetch` |
-| DT-02 | Estado global `G` sem tipagem | `game.js` global | Bugs silenciosos por propriedade inexistente | Adicionar JSDoc ou migrar para TypeScript |
-| DT-03 | `bonus: 'draw1'` não implementado | `game.js:297` | Carta "Comunicação" tem efeito placeholder | Definir mecânica e implementar |
-| DT-04 | `checkSet` com `WIN=5` hardcoded | `game.js:629` | Impossível configurar pontuação sem editar código | Tornar configurável via `G.matchConfig` |
-| DT-05 | Multiplayer sem tratamento de queda | `game.js:864+` | Desconexão = jogo travado sem feedback | Adicionar `conn.on('close')` e `conn.on('error')` com tela de reconexão |
-| DT-06 | IA seleção aleatória simples | `game.js:330+` | IA não considera histórico nem placar | Adicionar peso por fase do jogo (pontos restantes, energia disponível) |
-| DT-07 | `log-area` re-renderiza innerHTML completo | `game.js:785` | Ineficiente; cintilação visual possível | Diff incremental ou atualizar só entradas novas |
-| DT-08 | Sem validação de ações multiplayer | `game.js:874+` | Host pode manipular estado do cliente | Para MVP é aceitável; requer backend para produção real |
+| DT-01 | `CARDS_DB` hardcoded em JS | `data.js` | Dificulta adição de cartas sem tocar no código | Mover para `cards.json` e carregar via `fetch` |
+| DT-02 | Estado global `G` sem tipagem | `state.js` global | Bugs silenciosos por propriedade inexistente | Adicionar JSDoc ou migrar para TypeScript |
+| DT-03 | `bonus: 'draw1'` incompleto | `input.js:applyBonus` | "Comunicação" só loga; sem mecânica real de carta extra | Implementar compra de carta extra de qualquer fase |
+| DT-04 | `checkSet` com `WIN=5` hardcoded | `combat.js:checkSet` | Impossível configurar pontuação sem editar código | Tornar configurável via `G.matchConfig` |
+| DT-05 | Multiplayer sem tratamento de queda | `multiplayer.js` | Desconexão = jogo travado (overlay de desconexão existe mas sem reconexão) | Implementar retry ou sala persistente |
+| DT-06 | IA seleção aleatória simples | `ai.js:getAIPlay` | IA não considera histórico nem placar | Adicionar pesos por energia, placar, fase do jogo |
+| DT-07 | `renderLog` re-renderiza innerHTML completo | `render.js:renderLog` | Ineficiente; cintilação visual possível | Diff incremental ou só atualizar entradas novas |
+| DT-08 | Sem validação de ações multiplayer | `multiplayer.js` | Host controla placar autoritativo sem verificação | Aceitável para MVP; requer backend para produção |
+| DT-09 | `card.outcomes` não utilizado | `data.js`, `combat.js` | Probabilidades de ataque (blocked/out/net) definidas mas ignoradas | Implementar sistema de erros de ataque baseado em outcomes |
 
 ---
 
 ## Histórico de Mudanças
+
+### [2026-06] Refatoração de Arquitetura — Divisão em Módulos
+#### Adicionado
+- `data.js` — toda a base de dados de cartas e constantes
+- `audio.js` — sistema de áudio Web Audio API
+- `state.js` — estado global G, newGame, startPoint, log
+- `deck.js` — gestão do baralho
+- `render.js` — toda a renderização DOM
+- `input.js` — input do jogador, seleção de cartas, bônus, combo
+- `combat.js` — sistema de resolução de combate (qualidade de defesa, bloqueio, ataque, pontuação)
+- `ai.js` — inteligência artificial
+- `multiplayer.js` — rede PeerJS
+- `main.js` — event listeners e menu
+- `docs/` — documentação por módulo para agentes
+
+#### Alterado
+- `index.html` — carrega 10 arquivos de módulo em vez de `game.js`
+- `game.js` — marcado como ⚠ DEPRECATED (histórico; não é mais carregado)
+
+#### Removido
+- `calculateAttackProbabilities()` — dead code após sistema de gap-based quality substituir o sistema de probabilidade de ataque
+- `resolveAttackOutcome()` — idem (reservado em `data.js` como `card.outcomes` para uso futuro)
+
+---
+
+### [2026-06] Sistema de Qualidade de Defesa
+#### Adicionado
+- `DEFENSE_QUALITY_RANGES` em `data.js` — 4 tiers por gap
+- `getDefenseQuality(gap)` em `combat.js`
+- `G.nextAttackBonus` e `G.aiNextAtkBonus` — carry-forward de qualidade
+- `G.defenseQuality` — última qualidade resolvida (debug/futuro)
+- Feedback emoji + gap no log para todas as resoluções de defesa
+- Dados de qualidade (`quality`, `gap`) nos pacotes `DEFENSE_SUCCESS`/`DEFENSE_FAIL` multiplayer
+
+#### Alterado
+- `resolveDefense()` — usa gap-based quality em vez de comparação binária
+- `resolvePlayerAttack()` — usa gap-based quality para defesa da IA
+- `aiTurn()` — aplica e consome `G.aiNextAtkBonus`
+- `playCard()` fase attack — aplica e consome `G.nextAttackBonus`
+- `startPoint()` — reseta `nextAttackBonus` e `aiNextAtkBonus`
+
+---
+
+### [2026-06] Saque com Tipos de Erro
+#### Adicionado
+- `errorType: 'out'|'net'` no pacote `SERVICE_ERROR` multiplayer
+- Logs separados para "bola para fora" vs "bola na rede" (jogador e IA)
+
+---
 
 ### [2026-06] Refatoração UI/UX Completa
 #### Adicionado
