@@ -83,13 +83,14 @@ Saque da IA
               └── falha → Ponto da IA
 ```
 
-#### Sistema de Qualidade de Defesa (gap-based)
-| Tier | Gap | Taxa de Sucesso | nextAtkBonus |
-|---|---|---|---|
-| ⭐ Crítica | ≥ 4 | 100% | +3 |
-| ✅ Boa | 0 – 3 | 95% | +1 |
-| ⚠️ Ruim | -3 – -1 | 30% | -1 |
-| ❌ Miss | ≤ -4 | 0% | -2 |
+#### Sistema de Qualidade de Defesa — 5 Tiers GDD (gap-based)
+| Tier | Chave | Gap | Taxa de Sucesso | nextAtkBonus |
+|---|---|---|---|---|
+| 💥 Ataque Dominante | `ataque_dominante` | ≤ -7 | 0% | -2 |
+| ⚡ Vantagem Ofensiva | `vantagem_ofensiva` | -6 a -4 | 25% | -1 |
+| ⚖️ Equilíbrio | `equilibrio` | -3 a +3 | 95% | 0 |
+| 🛡️ Vantagem Defensiva | `vantagem_defensiva` | +4 a +6 | 100% | +2 |
+| ⭐ Defesa Dominante | `defesa_dominante` | ≥ +7 | 100% | +4 |
 
 `nextAttackBonus` é aplicado automaticamente no próximo ataque do time que defendeu.
 Tanto o jogador (`G.nextAttackBonus`) quanto a IA (`G.aiNextAtkBonus`) acumulam o bônus.
@@ -111,11 +112,12 @@ Tanto o jogador (`G.nextAttackBonus`) quanto a IA (`G.aiNextAtkBonus`) acumulam 
 ### Sistemas Principais
 
 #### Sistema de Cartas
-- Baralho de **42 cartas** montado no início de cada ponto (`buildDeck`): 7 cópias de cada tipo (service, setting, attack, defense, block, support)
+- Baralho de **42 cartas** montado no início de cada ponto (`buildDeck`): 7 cópias de cada tipo (service, setting, attack, defense, block, coach)
 - A mão exibe **3 opções** relevantes à fase atual
 - Trocar uma carta custa **1 de energia** (`rerollOption`)
 - Baralho se reconstrói automaticamente quando esgota (embaralha o descarte)
-- Cada carta tem: `id`, `name`, `type`, `cost`, `power`, `desc`, `phases[]`, `bonus?`
+- Cada carta tem: `id`, `name`, `type`, `level`, `cost`, `power`, `desc`, `phases[]`, `bonus?`
+- **Cartas Coach (Dica do Treinador)**: tipo `'coach'`, disponíveis em defense/setting/attack, **limite de 1 por ponto** (`G.coachUsed`)
 
 #### Sistema de Energia
 - Jogador: 10 de energia máxima (`G.energy = 10`, `G.maxEnergy = 10`)
@@ -129,7 +131,7 @@ Tanto o jogador (`G.nextAttackBonus`) quanto a IA (`G.aiNextAtkBonus`) acumulam 
 - Sequência confirmada: `COMBO_SEQ = ['defense', 'setting', 'attack']`
 - Completar a sequência completa concede **+2 de poder** no ataque e dispara efeito sonoro
 - A defesa bem-sucedida inicia o combo (`G.comboIdx = 1`)
-- Carta de support não quebra o combo
+- Carta de `coach` não quebra o combo
 
 #### Sistema de Bônus de Cartas
 | bonus | Efeito |
@@ -191,11 +193,11 @@ Tanto o jogador (`G.nextAttackBonus`) quanto a IA (`G.aiNextAtkBonus`) acumulam 
 | blk2 | Paredão | 2 | 6 | — |
 | blk3 | Leitura de Bloqueio | 1 | 4 | — |
 
-#### Suporte (2 cartas — disponíveis em defesa, levantamento, ataque)
-| id | Nome | Custo | Poder | Bônus |
-|---|---|---|---|---|
-| sup1 | Foco | 0 | 0 | energy2 |
-| sup2 | Comunicação | 1 | 0 | draw1 |
+#### Coach / Dica do Treinador (2 cartas — disponíveis em defesa, levantamento, ataque; **limite 1 por ponto**)
+| id | Nome | Nível | Custo | Poder | Bônus |
+|---|---|---|---|---|---|
+| cch1 | Foco do Técnico | basico | 0 | 0 | energy2 |
+| cch2 | Chamada do Técnico | intermediario | 1 | 0 | draw1 |
 
 ### IA (modo single-player)
 - **Seleciona cartas aleatoriamente** do pool filtrado por fase e custo disponível
@@ -208,9 +210,12 @@ Tanto o jogador (`G.nextAttackBonus`) quanto a IA (`G.aiNextAtkBonus`) acumulam 
 
 ## Mecânicas Confirmadas
 
-### Qualidade de Defesa ✅ Implementada
+### Qualidade de Defesa — 5 Tiers GDD ✅ Implementada
 - Sistema de gap entre poder de defesa e poder de ataque
-- 4 tiers: Crítica (gap ≥4, 100% sucesso, +3 bônus), Boa (0–3, 95%, +1), Ruim (-3–-1, 30%, -1), Miss (≤-4, 0%, -2)
+- **5 tiers simétricos** (migrado de 4 para 5 em 2026-06):
+  - `ataque_dominante` (gap ≤-7, 0%, -2), `vantagem_ofensiva` (-6 a -4, 25%, -1)
+  - `equilibrio` (-3 a +3, 95%, 0), `vantagem_defensiva` (+4 a +6, 100%, +2), `defesa_dominante` (≥+7, 100%, +4)
+- Mudança-chave vs sistema anterior: gap -3–-1 antes era 30% (tier `ruim`), agora é 95% (tier `equilibrio`)
 - `nextAttackBonus` para jogador, `aiNextAtkBonus` para IA — carry-forward automático
 - Feedback visual via emoji e gap explícito no log
 
@@ -386,7 +391,8 @@ mvp_volei_roguelike_deckbuilder/
     ├── input.md
     ├── combat.md
     ├── ai.md
-    └── multiplayer.md
+    ├── multiplayer.md
+    └── card-catalog.md  # Design document: 120 cartas (design only, não em data.js)
 ```
 
 ### Script load order (index.html)
@@ -459,6 +465,7 @@ G = {
   aiJustDefended: boolean,   // IA já fez o 1º toque
   isDefendingServe: boolean, // Defesa é de saque (muda label)
   defenseQuality: object|null, // Última qualidade de defesa resolvida
+  coachUsed: boolean,        // Dica do Treinador usada nesse ponto (limite 1)
 
   // Log
   log: string[],  // máx. 40 entradas, mais novo no índice 0
@@ -668,6 +675,37 @@ Toda mensagem embute `data.energy = G.energy` para sincronizar energia do remete
 - Duplicatas de `@keyframes cardGlow/cardPulse` e regras de menu multiplayer no CSS
 - `#player-label` com `font-size: 9px` → `14px`
 - `appUI.style.display = 'flex'` destruindo o CSS Grid ao iniciar partida
+
+---
+
+### [2026-06] Integração GDD — 5-Tier Resolution + Coach + Level + Catálogo 120 Cartas
+
+#### Alterado
+- `DEFENSE_QUALITY_RANGES` em `data.js` — migrado de 4 tiers para 5 tiers simétricos GDD
+  - Tiers antigos: critica/boa/ruim/miss
+  - Tiers novos: ataque_dominante/vantagem_ofensiva/equilibrio/vantagem_defensiva/defesa_dominante
+  - Impacto de balanceamento: gap -3–-1 era 30% sucesso (ruim), agora é 95% (equilibrio)
+  - Impacto de balanceamento: gap ≥4 era +3 bônus, agora split entre +2 (vantagem) e +4 (dominante)
+- `combat.js:getDefenseQuality` — fallback de `'miss'` para `'ataque_dominante'`
+- `combat.js:autoResolve` — pacote multiplayer usa `'ataque_dominante'` em vez de `'miss'`
+- `deck.js` — tipo `'support'` renomeado para `'coach'` em buildDeck e drawPhaseOptions
+- `deck.js:drawPhaseOptions` — filtra coach quando `G.coachUsed = true`
+- `input.js` — `card.type === 'support'` → `card.type === 'coach'`; seta `G.coachUsed = true` ao jogar
+- `input.js:updateCombo` — ignora tipo `'coach'` (não quebra, não avança combo)
+- `input.js:rerollOption` — filtra fase `'coach'` com `G.coachUsed`
+- `state.js:newGame` — campo `coachUsed: false` adicionado ao G
+- `state.js:startPoint` — reseta `G.coachUsed = false` a cada ponto
+- `style.css` — `.type-support` agora também inclui `.type-coach` (mesma estilização)
+- Todos os cards em `data.js` — campo `level` adicionado (`'basico'|'intermediario'|'avancado'`)
+- Cards `sup1`/`sup2` → `cch1`/`cch2` com `type:'coach'` e nomes atualizados
+
+#### Adicionado
+- `G.coachUsed: boolean` — limite de 1 uso de carta Coach por ponto
+- `docs/card-catalog.md` — catálogo de design com 120 cartas (6 categorias × 3 níveis); apenas design, sem código ainda
+- Campo `level` no schema de cartas (metadata para progressão futura)
+
+#### Removido
+- Tipo `'support'` — substituído por `'coach'` em todos os arquivos
 
 ---
 

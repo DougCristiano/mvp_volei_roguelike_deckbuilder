@@ -20,7 +20,7 @@ player vs AI attack/defense, scoring, and set/match end.
 | `tickBlockTimer()` | Block timer interval callback |
 | `tickDefTimer()` | Defense timer interval callback |
 
-## Defense quality flow
+## Defense quality flow (5-tier GDD system)
 ```
 resolveDefense() / resolvePlayerAttack()
   ↓
@@ -32,6 +32,15 @@ resolveDefense() / resolvePlayerAttack()
     YES → rally continues, G.nextAttackBonus = nextAtkBonus
     NO  → point to opponent
 ```
+
+## Resolution tiers (gap = defPow − attackPow)
+| Tier key | Gap range | Success | nextAtkBonus | Description |
+|---|---|---|---|---|
+| `ataque_dominante` | ≤ -7 | 0% | -2 | Attack dominates — direct point |
+| `vantagem_ofensiva` | -6 to -4 | 25% | -1 | Attack advantage — partial chance |
+| `equilibrio` | -3 to +3 | 95% | 0 | Balanced — defense likely succeeds |
+| `vantagem_defensiva` | +4 to +6 | 100% | +2 | Defense advantage — counter ready |
+| `defesa_dominante` | ≥ +7 | 100% | +4 | Perfect defense — strong counter |
 
 ## Block outcome probabilities (resolveBlock)
 | Roll | Probability | Outcome |
@@ -51,3 +60,4 @@ resolveDefense() / resolvePlayerAttack()
 - `checkSet()` only sends `POINT_END` multiplayer packet when `!G.isNetworkReceiver`.
 - `G.nextAttackBonus` is consumed (set to 0) by `input.js:playCard()` when the attack is played.
 - `G.aiNextAtkBonus` is consumed by `ai.js:aiTurn()` after computing attack power.
+- `autoResolve()` sends `quality: 'ataque_dominante'` (not 'miss') in multiplayer packet.

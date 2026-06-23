@@ -4,7 +4,7 @@
 
 function buildDeck() {
   let pool = [];
-  const types = ['service', 'setting', 'attack', 'defense', 'block', 'support'];
+  const types = ['service', 'setting', 'attack', 'defense', 'block', 'coach'];
   types.forEach(t => {
     const typeCards = CARDS_DB.filter(c => c.type === t);
     for (let i = 0; i < 7; i++) pool.push({ ...typeCards[i % typeCards.length] });
@@ -35,17 +35,20 @@ function clearHand() {
 }
 
 // Draws up to 3 cards valid for the current phase into the hand.
+// Coach cards are excluded when G.coachUsed is true or during service/block phases.
 // Recycles discard pile if the deck runs out.
 function drawPhaseOptions() {
   clearHand();
 
   let phases = [];
   if (G.blockWindow)      phases = ['block'];
-  else if (G.defWindow)   phases = ['defense', 'support'];
-  else                    phases = [G.phase, 'support'];
+  else if (G.defWindow)   phases = ['defense', 'coach'];
+  else                    phases = [G.phase, 'coach'];
 
-  // Support is not available during service or block
-  if (G.phase === 'service' || G.blockWindow) phases = phases.filter(p => p !== 'support');
+  // Coach is not available during service or block, or when already used this point
+  if (G.phase === 'service' || G.blockWindow || G.coachUsed) {
+    phases = phases.filter(p => p !== 'coach');
+  }
 
   let found = [];
   for (let i = G.deck.length - 1; i >= 0 && found.length < 3; i--) {

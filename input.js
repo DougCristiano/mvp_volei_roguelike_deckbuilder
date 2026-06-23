@@ -44,21 +44,23 @@ function playCard() {
 
   if (G.gameMode === 'multiplayer') sendData({ type: 'PLAY_CARD', cardId: card.id });
 
-  // Support cards redraw in the same phase
-  if (card.type === 'support') {
+  // Coach cards (Dica do Treinador) redraw in the same phase; limited to 1 per point
+  if (card.type === 'coach') {
+    G.coachUsed = true;
+    log('📋 Dica do Técnico usada! (1 por ponto)');
     clearHand();
     drawPhaseOptions();
     if (card.bonus === 'draw1') {
-      const phases = G.defWindow ? ['defense', 'support'] : [G.phase, 'support'];
+      const phases = G.defWindow ? ['defense'] : [G.phase];
       let extra = null;
       for (let i = G.deck.length - 1; i >= 0 && !extra; i--) {
-        if (G.deck[i].phases.some(p => phases.includes(p))) extra = G.deck.splice(i, 1)[0];
+        if (G.deck[i].phases.some(p => phases.includes(p)) && G.deck[i].type !== 'coach') extra = G.deck.splice(i, 1)[0];
       }
       if (!extra && G.discard.length > 0) {
         G.deck = shuffle([...G.deck, ...G.discard]);
         G.discard = [];
         for (let i = G.deck.length - 1; i >= 0 && !extra; i--) {
-          if (G.deck[i].phases.some(p => phases.includes(p))) extra = G.deck.splice(i, 1)[0];
+          if (G.deck[i].phases.some(p => phases.includes(p)) && G.deck[i].type !== 'coach') extra = G.deck.splice(i, 1)[0];
         }
       }
       if (extra) G.hand.push(extra);
@@ -128,9 +130,9 @@ function rerollOption() {
 
   let phases = [];
   if (G.blockWindow)    phases = ['block'];
-  else if (G.defWindow) phases = ['defense', 'support'];
-  else                  phases = [G.phase, 'support'];
-  if (G.phase === 'service' || G.blockWindow) phases = phases.filter(p => p !== 'support');
+  else if (G.defWindow) phases = ['defense', 'coach'];
+  else                  phases = [G.phase, 'coach'];
+  if (G.phase === 'service' || G.blockWindow || G.coachUsed) phases = phases.filter(p => p !== 'coach');
 
   let found = [];
   for (let i = G.deck.length - 1; i >= 0 && found.length < 1; i--) {
@@ -164,7 +166,7 @@ function applyBonus(card) {
 }
 
 function updateCombo(card) {
-  if (card.type === 'support') return;
+  if (card.type === 'coach') return;
   if (G.comboIdx < COMBO_SEQ.length && card.type === COMBO_SEQ[G.comboIdx]) {
     G.comboIdx++;
     if (G.comboIdx === COMBO_SEQ.length) {

@@ -11,7 +11,7 @@ function getDefenseQuality(gap) {
       return { quality: qualityKey, ...range };
     }
   }
-  return { quality: 'miss', ...DEFENSE_QUALITY_RANGES['miss'] };
+  return { quality: 'ataque_dominante', ...DEFENSE_QUALITY_RANGES['ataque_dominante'] };
 }
 
 // Checks if the player has 0 energy during an active rally and auto-sends a freeball.
@@ -192,7 +192,7 @@ function autoResolve() {
   log('⏱ Tempo esgotado! Defesa 0.');
   G.aPts++;
   G.nextServer = 'ai';
-  if (G.gameMode === 'multiplayer') sendData({ type: 'DEFENSE_FAIL', defPow: 0, quality: 'miss' });
+  if (G.gameMode === 'multiplayer') sendData({ type: 'DEFENSE_FAIL', defPow: 0, quality: 'ataque_dominante' });
   endPoint('loss', 'O ataque/saque superou a defesa.');
 }
 

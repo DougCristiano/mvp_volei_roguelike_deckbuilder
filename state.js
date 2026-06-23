@@ -50,6 +50,7 @@ function newGame(gameMode = 'ai', isHost = false) {
     aiJustDefended: false,
     isDefendingServe: false,
     defenseQuality: null,
+    coachUsed: false,      // Dica do Treinador limited to 1 use per point
 
     // Log (newest at index 0)
     log: [],
@@ -86,6 +87,7 @@ function startPoint() {
   G.aiJustDefended   = false;
   G.isDefendingServe = false;
   G.defenseQuality   = null;
+  G.coachUsed        = false;
   clearInterval(G.blockInterval);
   clearInterval(G.defInterval);
   hidePointResult();
