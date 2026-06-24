@@ -15,6 +15,8 @@
 5. **Não refatore por refatorar.** Cada mudança deve ser motivada por um requisito ou débito documentado.
 6. **Sempre deixe o projeto mais documentado do que encontrou.** Adicione o que fez à seção `Histórico de Mudanças`.
 7. **Informe o usuário antes de alterar mecânicas de jogo.** Balanceamento e regras exigem aprovação explícita.
+8. **Antes de tocar qualquer módulo, leia `docs/[módulo].md` primeiro.** Cada doc é auto-suficiente: contém propriedades de G usadas, regras de negócio e invariantes. Só recorra a AGENT.md se o doc não responder à dúvida.
+9. **Atualize `docs/[módulo].md` e AGENT.md quando o comportamento esperado mudar.** Critério: "um AI lendo este doc amanhã vai ter uma expectativa errada?" → se sim, atualize. Não atualize em bug fixes onde o doc já descrevia o comportamento correto (o código é que estava errado) nem em refatores sem mudança de interface.
 
 ---
 

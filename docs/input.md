@@ -1,76 +1,142 @@
 # input.js — Player input handling
 
 ## Purpose
-Translates player UI actions into game state changes: card selection, card play,
-reroll, combo tracking, and bonus application. Enforces the 1-phase + 1-coach combo system.
+Translates player UI actions into game state changes: card selection, card play, reroll,
+bonus application, combo tracking. Enforces the 1-phase + 1-coach combo selection constraint.
 
 ## Exports (globals)
 | Function | Description |
 |---|---|
-| `canPlay(card)` | Returns true if the card is valid and affordable in the current context (coach requires phase card) |
-| `selectCard(idx)` | Toggles card selection in `G.selected`, enforcing max 2 cards (1 phase + 1 coach) |
-| `playCard()` | Executes the selected card(s) — applies coach bonus first, then phase card |
-| `rerollOption()` | Discards selected card, draws replacement (costs 1 energy) |
-| `applyBonus(card)` | Applies the card's `bonus` effect to G state |
-| `updateCombo(card)` | Advances or resets `G.comboIdx` based on card type (coach doesn't break/advance) |
+| `canPlay(card)` | Returns true if card is valid and affordable right now |
+| `selectCard(idx)` | Toggles selection; enforces max 2 cards (1 phase + 1 optional coach) |
+| `playCard()` | Applies coach bonus, then plays phase card; routes by phase |
+| `rerollOption()` | Discards selected card, draws 1 replacement (costs 1 energy) |
+| `applyBonus(card)` | Applies `card.bonus` side effect to G |
+| `updateCombo(card)` | Advances or resets `G.comboIdx` based on card type |
 
-## selectCard() behavior (1 phase + 1 coach combo)
-```
-Goal: Allow max 2 cards in G.selected at all times
-- If card is coach:
-  - Must have a phase card already selected (canPlay checks this)
-  - Append to G.selected
-- If card is phase card:
-  - Replace any existing phase card, preserve existing coach (if present)
-  - G.selected = [coachIdx || empty] + [phaseIdx]
-- Deselect:
-  - If deselecting phase card → clear all (coach can't be alone)
-  - If deselecting coach → just remove coach
+---
+
+## G properties used by this module
+| Property | Read | Write |
+|---|---|---|
+| `G.hand` | ✓ | ✓ (splice in reroll) |
+| `G.selected` | ✓ | ✓ |
+| `G.energy` | ✓ | ✓ |
+| `G.phase` | ✓ | ✓ |
+| `G.locked` | ✓ | ✓ |
+| `G.pointDone` | ✓ | — |
+| `G.defWindow` | ✓ | — |
+| `G.blockWindow` | ✓ | — |
+| `G.coachUsed` | ✓ | ✓ (set true when coach played) |
+| `G.nextPhaseExtraCard` | — | ✓ (set true if draw1 bonus) |
+| `G.atkBoost` | — | ✓ |
+| `G.nextAttackBonus` | ✓ | ✓ (consumed to 0 on attack) |
+| `G.aiDefMinus` | — | ✓ |
+| `G.comboIdx` | ✓ | ✓ |
+| `G.possession` | ✓ | — |
+| `G.campaignTeam` | ✓ | — |
+| `G.gameMode` | ✓ | — |
+| `G.log` | — | ✓ (via log()) |
+| `G.pPts`, `G.aPts` | — | ✓ (service error: aPts++) |
+| `G.nextServer` | — | ✓ (service error: set to 'ai') |
+| `G.discard` | — | ✓ (via clearHand, reroll) |
+| `G.deck` | — | ✓ (reroll draws from deck) |
+
+---
+
+## canPlay(card) — full logic
+```js
+// Coach: only playable AFTER a phase card is already selected
+if (card.type === 'coach') {
+  if (G.coachUsed) return false;
+  const hasPhaseCard = G.selected.some(i => G.hand[i]?.type !== 'coach');
+  if (!hasPhaseCard) return false;
+  const selCost = G.selected.reduce((s, i) => s + (G.hand[i]?.cost || 0), 0);
+  return card.cost + selCost <= G.energy;
+}
+// Defense/block windows check phase directly
+if (G.defWindow)   return card.phases.includes('defense') && card.cost <= G.energy;
+if (G.blockWindow) return card.phases.includes('block')   && card.cost <= G.energy;
+// Normal turn: card must match current phase
+return card.phases.includes(G.phase) && card.cost <= G.energy;
 ```
 
-## playCard() routing
+## selectCard(idx) — selection rules
 ```
-1. Separate phase and coach cards from G.selected
-2. Validate that phase card exists (obliga)
-3. Apply coach bonus (energy restored BEFORE phase card cost debit)
-4. Set G.coachUsed = true, set flag for next phase if draw1
-5. Clear hand, discard both cards
-6. Route phase card by phase:
-   - 'service' → error check → passBall / SERVICE_ERROR + endPoint
-   - 'defense' → advance to 'setting', drawPhaseOptions
-   - 'setting' → advance to 'attack', drawPhaseOptions
-   - 'attack' → compute total power, call resolvePlayerAttack()
+Goal: G.selected always has max 2 entries (1 phase card + 1 optional coach)
 
-total attack power = card.power + G.atkBoost + G.nextAttackBonus
-  (G.atkBoost and G.nextAttackBonus are both consumed to 0 after use)
+Deselect (card already in selected):
+  - If removing phase card → clear ALL selected (coach can't be alone)
+  - If removing coach → splice just coach out
+
+Select (new card):
+  - Coach → append to selected (canPlay guarantees a phase card exists)
+  - Phase card → keep existing coach if any, replace phase card
+    G.selected = [coachIdx || nothing] + [phaseIdx]
 ```
 
-## applyBonus() keys
-| bonus string | Effect |
+---
+
+## playCard() — order of operations
+```
+1. Find phaseIdx  = G.selected.find(i => G.hand[i].type !== 'coach')
+2. Find coachIdx  = G.selected.find(i => G.hand[i].type === 'coach')
+3. Guard: if no phase card, return early
+4. G.locked = true; sounds.cardPlay()
+5. Apply coach bonus:
+   a. G.coachUsed = true
+   b. G.energy -= coach.cost
+   c. applyBonus(coach)  ← energy2 restores BEFORE phase cost debit
+   d. if coach.bonus === 'draw1': G.nextPhaseExtraCard = true
+6. G.energy -= phase.cost
+7. applyBonus(phase)
+8. log(...)
+9. updateCombo(phase)
+10. sendData (if multiplayer)
+11. clearHand()
+12. Route by phase: 'service' | 'defense' | 'setting' | 'attack'
+```
+
+## Phase routing after playCard
+| Phase | Action |
 |---|---|
-| `energy1` | +1 energy |
-| `energy2` | +2 energy (applied BEFORE phase card cost debit) |
-| `atkBoost2/3/6` | +N to G.atkBoost |
-| `draw1` | Sets G.nextPhaseExtraCard flag (coach guaranteed on next draw) |
-| `aiDefMinus1/2` | +N to G.aiDefMinus (deducted from AI defense in resolvePlayerAttack) |
+| `service` | Error check (5% + power×3%) → endPoint loss, or passBall(true, true) |
+| `defense` | Advance to 'setting', drawPhaseOptions() |
+| `setting` | Advance to 'attack', drawPhaseOptions(), sendData SETTING_PLAY |
+| `attack` | Total = power + atkBoost + nextAttackBonus + meteorosBonus → resolvePlayerAttack() |
 
-## Combo system (updateCombo)
+**Os Meteoros passive (attack)**: `meteorosBonus = G.campaignTeam === 'meteoros' ? 2 : 0`
+
+---
+
+## applyBonus() — all effects
+| bonus key | Effect on G |
+|---|---|
+| `energy2` | `G.energy = min(G.energy + 2, G.maxEnergy)` |
+| `energy1` | `G.energy = min(G.energy + 1, G.maxEnergy)` |
+| `atkBoost2` | `G.atkBoost += 2` |
+| `atkBoost3` | `G.atkBoost += 3` |
+| `atkBoost6` | `G.atkBoost += 6` |
+| `draw1` | Log only (G.nextPhaseExtraCard set in playCard, not here) |
+| `aiDefMinus1` | `G.aiDefMinus += 1` |
+| `aiDefMinus2` | `G.aiDefMinus += 2` |
+
+---
+
+## updateCombo(card)
 ```
 COMBO_SEQ = ['defense', 'setting', 'attack']
-comboIdx starts at 0.
-- Card type matches COMBO_SEQ[comboIdx] → comboIdx++
-- comboIdx reaches 3 → COMBO! G.atkBoost += 2, sounds.combo()
-- Card type is 'coach' → no change (doesn't break or advance)
-- Card type is anything else (and not 'service') → comboIdx resets to 0
+- coach type → ignored (no break, no advance)
+- matches COMBO_SEQ[comboIdx] → comboIdx++; if comboIdx === 3 → COMBO! atkBoost += 2
+- non-matching, non-service → comboIdx = 0
 ```
 
-**Important**: Coach cards are ignored by combo tracking — they're modifiers, not part of the sequence.
+---
 
-## Service error probability
-```
-errorChance = 0.05 + (card.power * 0.03)
-  srv1 (power 3): 14% error
-  srv2 (power 5): 20% error
-  srv3 (power 1):  8% error
-```
-Error is 50/50 out vs net.
+## rerollOption() — phase list
+Builds same phase list as drawPhaseOptions():
+- `blockWindow` → `['block', 'coach']`
+- `defWindow` → `['defense', 'coach']`
+- Otherwise → `[G.phase, 'coach']`
+Then removes `'coach'` if `G.coachUsed`.
+A card matches if `card.phases.some(p => phases.includes(p))`.

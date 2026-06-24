@@ -2,58 +2,114 @@
 
 ## Purpose
 AI decision-making: card selection, serve, rally sequencing, and attack power calculation.
+The AI is a full mirror of the Player (same phases, same card types, same energy rules).
 
 ## Exports (globals)
 | Function | Description |
 |---|---|
-| `aiTurn()` | Entry point — orchestrates the AI's full turn (serve or attack sequence) |
+| `aiTurn()` | Entry point — orchestrates AI's full turn (serve or attack sequence) |
 
 ## Internal helpers
 | Function | Description |
 |---|---|
-| `getAIPlay(phase, maxCost)` | Picks a random affordable card; 30% chance to spend +1 energy "drawing" |
+| `getAIPlay(phase, maxCost?)` | Picks a card for the AI; may spend energy to "draw" better options |
 
-## AI capabilities
-The AI is a full mirror of the Player:
-- **Serves**: picks card, has error chance (5% + power×3%)
-- **Blocks**: 60% chance to attempt block when player attacks
-  - 20%: direct point (AI)
-  - 20%: block out of bounds (player point)
-  - 60%: successful block → defense with 50% power reduction
-- **Defends**: picks best available defense card
-- **Attacks**: defense → setting (with bonuses) → attack (with combo)
+---
+
+## G properties used by this module
+| Property | Read | Write |
+|---|---|---|
+| `G.aiEnergy` | ✓ | ✓ |
+| `G.aiAtkPow` | — | ✓ |
+| `G.aiNextAtkBonus` | ✓ | ✓ (consumed to 0 after use) |
+| `G.aiJustDefended` | ✓ | ✓ |
+| `G.aiDifficulty` | ✓ | — |
+| `G.deck` | ✓ | — |
+| `G.discard` | ✓ | — |
+| `G.phase` | — | — |
+| `G.possession` | ✓ | ✓ |
+| `G.locked` | — | ✓ |
+| `G.pPts`, `G.aPts` | ✓ | ✓ (service error: pPts++) |
+| `G.nextServer` | — | ✓ (service error: set to 'player') |
+| `G.comboIdx` | — | — (AI uses local comboCount) |
+| `G.nextAttackBonus` | — | ✓ (via quality from startDefenseWindow callbacks) |
+| `G.gameMode` | ✓ | — |
+| `G.log` | — | ✓ (via log()) |
+
+---
+
+## AI difficulty scaling
+
+### getAIPlay() — draw chance
+```js
+const drawChances = [0.50, 0.30, 0.10];  // G.aiDifficulty: 0=easy, 1=medium, 2=hard
+```
+- Higher difficulty → lower draw chance → AI keeps more energy
+- On "draw": spend 1 aiEnergy to pick a different card from remaining pool
+
+### getAIPlay() — card selection
+```js
+if (G.aiDifficulty === 2) {
+  possible.sort((a, b) => b.power - a.power); // Hard: always picks highest power
+}
+const picked = possible[0]; // Easy/medium: random after sort
+// (For easy/medium, possible is shuffled before getAIPlay is called)
+```
+
+### Block chance (in combat.js:resolvePlayerAttack)
+```js
+const blockChances = [0.30, 0.50, 0.70]; // [easy, medium, hard]
+```
+AI blocks player attack with this probability. 60% is default hardcoded for player blocking AI.
+
+---
 
 ## AI turn flow
 ```
 aiTurn()
-  ↓ 900ms delay (simulates thinking)
-  ├── targetPhase === 'service'
+  ↓ G.locked = true, 900ms delay (simulates thinking)
+  ├── possession === 'ai' (AI serves)
   │     → getAIPlay('service')
-  │     → error chance (5% + power*3%) → endPoint win/loss
-  │     → success → startDefenseWindow(true)
-  └── targetPhase === 'attack'
-        → getAIPlay('defense') [unless aiJustDefended or just blocked]
-        → getAIPlay('setting')  [may add atkBoost]
-        → getAIPlay('attack')   [or freeball if no card]
-        → power = card.power + atkBoost + comboBonus + G.aiNextAtkBonus
-        → open blockWindow for player
+  │     → error chance: 5% + power×3%
+  │     → success → G.possession = 'ai', startDefenseWindow(true)
+  └── possession !== 'ai' (AI attacks after winning defense)
+        1. Defense (if !aiJustDefended):
+           → getAIPlay('defense')
+           → consume G.aiNextAtkBonus
+        2. Setting:
+           → getAIPlay('setting')  (or freeball if aiEnergy = 0)
+           → atkBoost from card.bonus (atkBoost3/atkBoost6)
+           → comboCount++
+        3. Attack:
+           → getAIPlay('attack')  (or freeball)
+           → power = card.power + atkBoost + (comboCount >= 3 ? 2 : 0) + G.aiNextAtkBonus
+           → G.aiNextAtkBonus = 0  (consumed)
+           → open blockWindow for player
 ```
+
+---
 
 ## Attack power formula
 ```
-power = atkPlay.card.power
-      + atkBoost          (from setting card bonus)
-      + (comboCount >= 3 ? 2 : 0)   (full combo bonus)
-      + G.aiNextAtkBonus  (from AI's own defense quality last touch)
+aiAtkPow = atkPlay.card.power
+          + atkBoost          (from setting card: atkBoost3 or atkBoost6)
+          + (comboCount >= 3 ? 2 : 0)   (full combo bonus)
+          + G.aiNextAtkBonus  (from AI's own defense quality last touch)
 ```
+`G.aiAtkPow` is set for use in `render.js:renderResolve()` (shows attacker power in defense panel).
 
-## How to improve the AI
-1. **Weighted card selection**: in `getAIPlay()`, replace random pick with weighted pick based on card power relative to G.energy remaining.
-2. **Adaptive strategy**: check score ratio (`G.aPts / G.pPts`) and select more aggressive cards when losing.
-3. **Energy management**: avoid drawing (30% chance) when energy is already low.
-4. **Setting bonus awareness**: prefer set2 (atkBoost6) when energy allows, for guaranteed power spike.
+---
+
+## AI capabilities
+- **Serves** with error chance (same formula as player)
+- **Defends** with defense card (considers aiDefMinus penalty)
+- **Blocks** player attacks (probability depends on `G.aiDifficulty`)
+- **Attacks** with full defense → setting → attack sequence
+- **Freeball** when aiEnergy hits 0 mid-sequence
+
+---
 
 ## Do NOT modify
-- The 900ms outer `setTimeout` — removing it causes render issues (UI not ready).
-- `G.aiJustDefended` flag — checked here to avoid double-counting defense in combo.
-- `G.aiNextAtkBonus = 0` reset after computing power — this is a one-shot consume.
+- The 900ms outer `setTimeout` — removing it causes render/state timing issues
+- `G.aiJustDefended` flag — prevents double-counting defense in local combo tracking
+- `G.aiNextAtkBonus = 0` reset — one-shot consume; do not carry between attacks

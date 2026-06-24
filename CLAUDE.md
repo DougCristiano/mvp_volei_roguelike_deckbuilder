@@ -127,14 +127,16 @@ Peers establish a DataConnection and exchange packets:
 ## Critical Rules & Patterns
 
 ### ✅ DO:
+- **Read `docs/[module].md` before touching any module** — it's self-contained: G properties, rules, invariants. Only open AGENT.md if the doc doesn't answer your question.
+- **Update `docs/[module].md` when expected behavior changes** — mechanic added/changed, G property added, function renamed, business rule altered. Do NOT update for: bug fixes where the doc already described the correct behavior (code was wrong, not the doc), internal refactors with no interface change, CSS or log text tweaks. Ask: "would an AI reading this doc tomorrow have a wrong expectation?" → if yes, update.
 - **Edit G only in `state.js`** (initialization) or legitimate handlers (combat.js when resolving actions)
 - **Call `render()` after G changes** to sync DOM to state
-- **Reference `AGENT.md`** before implementing game logic changes — it's the design document
 - **Add tests to `tests/` for core logic** (combat, deck, data) — Jest runs on Node with `module.exports`
 - **Use CSS custom properties** (`var(--color)`) for theming, defined at `:root` in `style.css`
 - **Log actions to `G.log`** for the in-game message display
 
 ### ❌ DON'T:
+- **Open AGENT.md as first step** — go to the relevant `docs/[module].md` first; AGENT.md is for design decisions and history, not implementation reference
 - **Mutate G from render.js** — render reads G, never writes to it
 - **Skip load order** — circular dependencies will cause undefined globals
 - **Add a build step** — files are loaded directly by `<script>` tags
@@ -192,11 +194,21 @@ Peers establish a DataConnection and exchange packets:
 
 ---
 
-## References
+## How to navigate — what to read for each task
 
-- **AGENT.md** — Official game design document and decision log (read this first for any game logic questions)
-- **wiki.html** — In-game encyclopedia (mechanics, tiers, archetypes, glossary)
-- **docs/** — Architecture docs per module (combat.md, ai.md, state.md, multiplayer.md, etc.)
+| Task | Read first |
+|---|---|
+| Changing card data / adding cards | `docs/data.md` |
+| Changing selection or play logic | `docs/input.md` |
+| Changing combat resolution / scoring | `docs/combat.md` |
+| Changing deck draw / shuffle | `docs/deck.md` |
+| Changing AI behavior | `docs/ai.md` |
+| Changing game state / lifecycle | `docs/state.md` |
+| Changing DOM / UI rendering | `docs/render.md` |
+| Changing multiplayer packets | `docs/multiplayer.md` |
+| Game design decisions / history | `AGENT.md` |
+
+Each `docs/*.md` is self-contained: it lists the G properties the module uses, the functions it calls, and all the business rules needed to make changes without reading AGENT.md.
 
 ---
 
