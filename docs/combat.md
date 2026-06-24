@@ -127,13 +127,20 @@ const aiWillBlock = Math.random() < blockChances[G.aiDifficulty ?? 1];
 
 ---
 
-## A Fortaleza passive (resolveDefense)
+## Campaign passives (data-driven via getCampaignTeam())
+Passives are read from `CAMPAIGN_TEAMS[team].passives` — no hardcoded team IDs in combat.js.
+
 ```js
-if (G.campaignTeam === 'fortaleza') {
-  successRate = Math.min(1.0, quality.successRate + 0.05);
-}
+// A Muralha — freeBlock
+const team = getCampaignTeam();
+if (team?.passives?.freeBlock && !G.freeBlockUsed) { blockCost = 0; G.freeBlockUsed = true; }
+
+// A Fortaleza — defenseRateBonus
+const defBonus = team?.passives?.defenseRateBonus ?? 0;
+successRate = Math.min(1.0, quality.successRate + defBonus);
 ```
-Applied to player defense quality calculation only.
+
+To add a new passive that affects combat, add the key to the team's `passives` object in `campaign.js` and read it here via `getCampaignTeam()?.passives?.newKey`.
 
 ---
 

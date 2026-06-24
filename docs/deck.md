@@ -12,6 +12,7 @@ Does not contain game logic — only pure deck operations.
 | `resetDeck()` | Merges hand + discard back into deck and reshuffles (called each point) |
 | `clearHand()` | Moves hand to discard, clears selected |
 | `drawPhaseOptions()` | Draws exactly 3 phase-valid cards from deck into hand |
+| `getCurrentValidPhases()` | Returns the valid phase list for the current context (used by input.js too) |
 
 ---
 

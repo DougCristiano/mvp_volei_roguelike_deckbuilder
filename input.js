@@ -14,9 +14,8 @@ function canPlay(card) {
     const selCost = G.selected.reduce((s, i) => s + (G.hand[i]?.cost || 0), 0);
     return card.cost + selCost <= G.energy;
   }
-  if (G.defWindow)   return card.phases.includes('defense') && card.cost <= G.energy;
-  if (G.blockWindow) return card.phases.includes('block')   && card.cost <= G.energy;
-  return card.phases.includes(G.phase) && card.cost <= G.energy;
+  const phases = getCurrentValidPhases();
+  return card.phases.some(p => phases.includes(p)) && card.cost <= G.energy;
 }
 
 function selectCard(idx) {
@@ -124,12 +123,12 @@ function playCard() {
     checkFreeball();
     render();
   } else if (G.phase === 'attack') {
-    // Os Meteoros passive: every attack gains +2 power
-    const meteorosBonus = G.campaignTeam === 'meteoros' ? 2 : 0;
+    const team = getCampaignTeam();
+    const meteorosBonus = team?.passives?.attackBonus ?? 0;
     const total = card.power + G.atkBoost + (G.nextAttackBonus || 0) + meteorosBonus;
     G.atkBoost = 0;
     G.nextAttackBonus = 0;
-    if (meteorosBonus > 0) log('🔥 Bônus Os Meteoros: +2 de ataque!');
+    if (meteorosBonus > 0) log(`${team.emoji} Bônus ${team.name}: +${meteorosBonus} de ataque!`);
     log(`🏐 Você executou ${card.name} com Ataque total ${total}!`);
     render();
     setTimeout(() => resolvePlayerAttack(total, card), 700);
@@ -145,12 +144,7 @@ function rerollOption() {
 
   if (G.gameMode === 'multiplayer') sendData({ type: 'REROLL' });
 
-  let phases = [];
-  if (G.blockWindow)    phases = ['block', 'coach'];
-  else if (G.defWindow) phases = ['defense', 'coach'];
-  else                  phases = [G.phase, 'coach'];
-  if (G.coachUsed) phases = phases.filter(p => p !== 'coach');
-
+  const phases = getCurrentValidPhases();
   let found = [];
   for (let i = G.deck.length - 1; i >= 0 && found.length < 1; i--) {
     if (G.deck[i].phases.some(p => phases.includes(p))) found.push(G.deck.splice(i, 1)[0]);

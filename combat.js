@@ -119,12 +119,12 @@ function resolveBlock() {
   }
 
   sounds.block();
-  // A Muralha passive: first block per point costs 0 energy
+  const team = getCampaignTeam();
   let blockCost = card.cost;
-  if (G.campaignTeam === 'muralha' && !G.freeBlockUsed) {
+  if (team?.passives?.freeBlock && !G.freeBlockUsed) {
     blockCost = 0;
     G.freeBlockUsed = true;
-    log('🧱 Bônus A Muralha: primeiro bloqueio grátis!');
+    log(`${team.emoji} Bônus ${team.name}: primeiro bloqueio grátis!`);
   }
   G.energy -= blockCost;
   clearHand();
@@ -197,11 +197,12 @@ function resolveDefense() {
 
   log(`⚖ Gap: ${gap} (${quality.emoji} ${quality.desc})`);
 
-  // A Fortaleza passive: +5% defense success rate on all tiers
+  const team = getCampaignTeam();
+  const defBonus = team?.passives?.defenseRateBonus ?? 0;
   let successRate = quality.successRate;
-  if (G.campaignTeam === 'fortaleza') {
-    successRate = Math.min(1.0, successRate + 0.05);
-    if (successRate > quality.successRate) log('🛡️ Bônus A Fortaleza: +5% de defesa!');
+  if (defBonus > 0) {
+    successRate = Math.min(1.0, successRate + defBonus);
+    log(`${team.emoji} Bônus ${team.name}: +${Math.round(defBonus * 100)}% de defesa!`);
   }
 
   if (Math.random() < successRate) {
@@ -400,6 +401,10 @@ function checkSet(result, desc) {
   if (G.pPts >= WIN_PTS && G.pPts - G.aPts >= 2) {
     G.pSets++; G.pPts = 0; G.aPts = 0;
     if (G.pSets >= WIN_SETS) {
+      if (G.gameMode === 'campaign' && G.campaignTeam && typeof earnMatchXP === 'function') {
+        const isActComplete = G.campaignMatchIndex >= CAMPAIGN_MATCH_CONFIG.length;
+        earnMatchXP(G.campaignTeam, true, isActComplete);
+      }
       render();
       if (G.gameMode === 'campaign' && G.campaignTeam) {
         showRewards(selectRewardCards(3));
@@ -415,7 +420,12 @@ function checkSet(result, desc) {
   }
   if (G.aPts >= WIN_PTS && G.aPts - G.pPts >= 2) {
     G.aSets++; G.pPts = 0; G.aPts = 0;
-    if (G.aSets >= WIN_SETS) { render(); showEnd(false); return; }
+    if (G.aSets >= WIN_SETS) {
+      if (G.gameMode === 'campaign' && G.campaignTeam && typeof earnMatchXP === 'function') {
+        earnMatchXP(G.campaignTeam, false, false);
+      }
+      render(); showEnd(false); return;
+    }
     render();
     showPointResult('loss', `💔 Set para ${oppNameCap}`, `${oppNameCap} venceu o set. Placar: ${G.pSets}×${G.aSets}`);
     return;

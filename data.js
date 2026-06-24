@@ -35,6 +35,16 @@ const CARDS_DB = [
   // ── COACH (Dica do Treinador) — 1 uso por ponto, fases defensivas/ofensivas ──
   {id:'cch1',name:'Foco do Técnico',    type:'coach',level:'basico',       cost:0,power:0, desc:'+2 Energia. O técnico mantém o atleta concentrado.',      phases:['coach'],bonus:'energy2'},
   {id:'cch2',name:'Chamada do Técnico', type:'coach',level:'intermediario', cost:1,power:0, desc:'+1 opção extra de carta. Ajuste tático imediato.',        phases:['coach'],bonus:'draw1'},
+
+  // ── CARTAS DESBLOQUEÁVEIS (requerem XP de treinador) ─────────────────────
+  {id:'atk6',name:'Cortada Cruzada',       type:'attack', level:'intermediario', cost:2,power:7, desc:'Cortada em diagonal fechada. Difícil de defender nas pontas.',    phases:['attack'], locked:true, unlockCost:{type:'attack', amount:120}},
+  {id:'atk7',name:'Ataque Pipe',           type:'attack', level:'avancado',      cost:3,power:10,desc:'Ataque do meio com salto máximo. Explosão total de potência.',     phases:['attack'], bonus:'atkBoost2', locked:true, unlockCost:{type:'attack', amount:250}},
+  {id:'def7',name:'Defesa Raspando',       type:'defense',level:'intermediario', cost:1,power:6, desc:'Mergulho rente ao chão salvando bolas impossíveis.',              phases:['defense'],locked:true, unlockCost:{type:'defense',amount:120}},
+  {id:'def8',name:'Interceptação',         type:'defense',level:'avancado',      cost:2,power:8, desc:'+2 Energia. Antecipação perfeita que energiza o time.',           phases:['defense'],bonus:'energy2', locked:true, unlockCost:{type:'defense',amount:250}},
+  {id:'set4',name:'Tabela de Braço',       type:'setting',level:'intermediario', cost:2,power:0, desc:'+6 poder no ataque. Levantamento técnico de alto risco e alta recompensa.', phases:['setting'],bonus:'atkBoost6', locked:true, unlockCost:{type:'setting',amount:120}},
+  {id:'blk4',name:'Duplo Bloqueio',        type:'block',  level:'intermediario', cost:2,power:7, desc:'Coordenação máxima na rede. Dois jogadores bloqueando juntos.',   phases:['block'],  locked:true, unlockCost:{type:'block',  amount:120}},
+  {id:'srv4',name:'Saque Viagem',          type:'service',level:'intermediario', cost:2,power:6, desc:'Saque com curva que confunde o receptor na linha de fundo.',      phases:['service'],locked:true, unlockCost:{type:'service',amount:120}},
+  {id:'cch3',name:'Estratégia do Técnico', type:'coach',  level:'avancado',      cost:1,power:0, desc:'+3 poder no próximo ataque. Ajuste tático decisivo.',            phases:['coach'],  bonus:'atkBoost3', locked:true, unlockCost:{type:'coach',  amount:150}},
 ];
 
 const PHASE_NAMES = {

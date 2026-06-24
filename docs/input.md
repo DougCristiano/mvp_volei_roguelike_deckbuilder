@@ -54,11 +54,9 @@ if (card.type === 'coach') {
   const selCost = G.selected.reduce((s, i) => s + (G.hand[i]?.cost || 0), 0);
   return card.cost + selCost <= G.energy;
 }
-// Defense/block windows check phase directly
-if (G.defWindow)   return card.phases.includes('defense') && card.cost <= G.energy;
-if (G.blockWindow) return card.phases.includes('block')   && card.cost <= G.energy;
-// Normal turn: card must match current phase
-return card.phases.includes(G.phase) && card.cost <= G.energy;
+// All other cards: use centralized phase list from deck.js
+const phases = getCurrentValidPhases();
+return card.phases.some(p => phases.includes(p)) && card.cost <= G.energy;
 ```
 
 ## selectCard(idx) — selection rules
@@ -105,7 +103,7 @@ Select (new card):
 | `setting` | Advance to 'attack', drawPhaseOptions(), sendData SETTING_PLAY |
 | `attack` | Total = power + atkBoost + nextAttackBonus + meteorosBonus → resolvePlayerAttack() |
 
-**Os Meteoros passive (attack)**: `meteorosBonus = G.campaignTeam === 'meteoros' ? 2 : 0`
+**Attack bonus passive**: `getCampaignTeam()?.passives?.attackBonus ?? 0` — data-driven, no hardcoded team IDs
 
 ---
 
@@ -134,9 +132,5 @@ COMBO_SEQ = ['defense', 'setting', 'attack']
 ---
 
 ## rerollOption() — phase list
-Builds same phase list as drawPhaseOptions():
-- `blockWindow` → `['block', 'coach']`
-- `defWindow` → `['defense', 'coach']`
-- Otherwise → `[G.phase, 'coach']`
-Then removes `'coach'` if `G.coachUsed`.
+Uses `getCurrentValidPhases()` from `deck.js` — same logic as `drawPhaseOptions()` and `canPlay()`.
 A card matches if `card.phases.some(p => phases.includes(p))`.

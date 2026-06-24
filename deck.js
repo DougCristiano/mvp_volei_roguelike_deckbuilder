@@ -14,7 +14,7 @@ function buildDeck() {
   }
 
   types.forEach(t => {
-    const typeCards = CARDS_DB.filter(c => c.type === t);
+    const typeCards = CARDS_DB.filter(c => c.type === t && !c.locked);
     const n = copies[t] ?? 3;
     for (let i = 0; i < n; i++) pool.push({ ...typeCards[i % typeCards.length] });
   });
@@ -43,22 +43,28 @@ function clearHand() {
   G.selected = [];
 }
 
-// Draws up to 3 cards valid for the current phase into the hand.
-// Coach cards are excluded only when G.coachUsed is true (already used this point).
+// Returns the list of valid phase identifiers for the current game context.
+// Coach is included unless already used this point (G.coachUsed).
+// Used by drawPhaseOptions(), rerollOption(), and canPlay().
+function getCurrentValidPhases() {
+  let phases;
+  if (G.blockWindow)    phases = ['block', 'coach'];
+  else if (G.defWindow) phases = ['defense', 'coach'];
+  else                  phases = [G.phase, 'coach'];
+  if (G.coachUsed) phases = phases.filter(p => p !== 'coach');
+  return phases;
+}
+
+// Draws exactly 3 cards valid for the current phase into the hand.
+// Coach appears as one of the 3 slots (not extra) and is excluded when G.coachUsed.
 // Recycles discard pile if the deck runs out.
 function drawPhaseOptions() {
   clearHand();
 
-  let phases = [];
-  if (G.blockWindow)    phases = ['block', 'coach'];
-  else if (G.defWindow) phases = ['defense', 'coach'];
-  else                  phases = [G.phase, 'coach'];
-
-  // Coach excluded only when already used this point
-  if (G.coachUsed) phases = phases.filter(p => p !== 'coach');
+  const phases = getCurrentValidPhases();
+  G.nextPhaseExtraCard = false; // reset flag (reserved for future use)
 
   const drawCount = 3;
-  G.nextPhaseExtraCard = false; // reset flag after use
 
   let found = [];
   for (let i = G.deck.length - 1; i >= 0 && found.length < drawCount; i--) {
@@ -83,5 +89,5 @@ function drawPhaseOptions() {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { shuffle, buildDeck, resetDeck, clearHand, drawPhaseOptions };
+  module.exports = { shuffle, buildDeck, resetDeck, clearHand, drawPhaseOptions, getCurrentValidPhases };
 }
