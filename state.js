@@ -10,13 +10,21 @@ function log(msg) {
 }
 
 function newGame(gameMode = 'ai', isHost = false, campaignTeam = null) {
+  const matchCfg = campaignTeam ? CAMPAIGN_MATCH_CONFIG[0] : null;
+
   G = {
     gameMode,
     isHost,
     campaignTeam,   // id string ('meteoros'|'muralha'|'fortaleza') or null
 
-    // Score — campaign starts 1-0 (player won the first set narratively)
-    pPts: 0, aPts: 0, pSets: campaignTeam ? 1 : 0, aSets: 0,
+    // Campaign match tracking
+    campaignMatchIndex: campaignTeam ? 1 : 0,
+    aiDifficulty: matchCfg ? matchCfg.aiDifficulty : 0,
+
+    // Score — driven by match config for campaign
+    pPts: 0, aPts: 0,
+    pSets: matchCfg ? matchCfg.pSets : 0,
+    aSets: matchCfg ? matchCfg.aSets : 0,
 
     // Resources
     energy: 10, maxEnergy: 10,
@@ -69,12 +77,60 @@ function newGame(gameMode = 'ai', isHost = false, campaignTeam = null) {
   buildDeck();
   startPoint();
 
-  // Campaign: announce the team and its passive in the log
+  // Campaign: announce the team, passive and match label in the log
   if (campaignTeam && typeof CAMPAIGN_TEAMS !== 'undefined' && CAMPAIGN_TEAMS[campaignTeam]) {
     const t = CAMPAIGN_TEAMS[campaignTeam];
     log(`${t.emoji} Dupla: ${t.name} (${t.players.join(' & ')})`);
     log(`⚡ Passivo: ${t.passive}`);
+    if (matchCfg) log(`🏆 ${matchCfg.label} — Boa sorte!`);
   }
+}
+
+// Advance to the next campaign match, preserving the grown deck.
+// Called after the player picks a reward card at the end of each match.
+function startNextCampaignMatch() {
+  const nextIndex = G.campaignMatchIndex + 1;
+
+  // All 3 matches completed — player won the campaign
+  if (nextIndex > CAMPAIGN_MATCH_CONFIG.length) {
+    showEnd(true);
+    return;
+  }
+
+  const matchCfg  = CAMPAIGN_MATCH_CONFIG[nextIndex - 1];
+  const savedDeck = [...G.deck]; // preserve rewards earned so far
+
+  // Reset match state without rebuilding the deck
+  G.campaignMatchIndex = nextIndex;
+  G.aiDifficulty       = matchCfg.aiDifficulty;
+  G.pSets              = matchCfg.pSets;
+  G.aSets              = matchCfg.aSets;
+  G.pPts               = 0;
+  G.aPts               = 0;
+  G.nextServer         = 'player';
+  G.comboIdx           = 0;
+  G.atkBoost           = 0;
+  G.nextAttackBonus    = 0;
+  G.aiNextAtkBonus     = 0;
+  G.aiDefMinus         = 0;
+  G.aiAtkPow           = 0;
+  G.aiJustDefended     = false;
+  G.isDefendingServe   = false;
+  G.defenseQuality     = null;
+  G.coachUsed          = false;
+  G.freeBlockUsed      = false;
+  G.selected           = [];
+  G.hand               = [];
+  G.discard            = [];
+  G.deck               = savedDeck;
+
+  clearInterval(G.blockInterval);
+  clearInterval(G.defInterval);
+
+  log(`— ${matchCfg.label} —`);
+  log(`🎯 Dificuldade ${['Fácil', 'Médio', 'Difícil'][matchCfg.aiDifficulty]} | Sets: ${matchCfg.pSets}×${matchCfg.aSets}`);
+
+  startPoint();
 }
 
 function startPoint() {

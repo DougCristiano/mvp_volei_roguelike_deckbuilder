@@ -14,22 +14,31 @@ function aiTurn() {
   render();
 
   setTimeout(() => {
-    // Picks a random affordable card for the given phase.
-    // 30% chance to spend 1 extra energy "drawing" the card.
+    // Picks a card for the given phase. Draw chance and selection strategy scale with aiDifficulty.
+    // difficulty 0 (easy): 50% draw chance, random pick
+    // difficulty 1 (medium): 30% draw chance, random pick
+    // difficulty 2 (hard): 10% draw chance, picks highest-power card
     function getAIPlay(phase, maxCost) {
       let possible = CARDS_DB.filter(c => c.phases.includes(phase) && c.cost <= maxCost && c.power > 0);
       if (possible.length === 0) return { card: null, drew: false, drawCost: 0 };
 
+      const difficulty  = (G && G.aiDifficulty !== undefined) ? G.aiDifficulty : 1;
+      const drawChances = [0.50, 0.30, 0.10];
+      const drawChance  = drawChances[difficulty];
+
       let drew = false;
       let drawCost = 0;
-      if (Math.random() < 0.30 && maxCost >= 1) {
+      if (Math.random() < drawChance && maxCost >= 1) {
         drew = true;
         drawCost = 1;
         maxCost -= 1;
         possible = CARDS_DB.filter(c => c.phases.includes(phase) && c.cost <= maxCost && c.power > 0);
         if (possible.length === 0) return { card: null, drew: true, drawCost: 1 };
       }
-      return { card: possible[Math.floor(Math.random() * possible.length)], drew, drawCost };
+
+      // Hard difficulty: always pick the strongest available card
+      if (difficulty === 2) possible.sort((a, b) => b.power - a.power);
+      return { card: possible[0], drew, drawCost };
     }
 
     const targetPhase = (G.phase === 'service') ? 'service' : 'attack';

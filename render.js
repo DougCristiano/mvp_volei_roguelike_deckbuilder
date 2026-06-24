@@ -9,6 +9,17 @@ function render() {
   const setsEl = document.getElementById('sets-display');
   if (setsEl) setsEl.textContent = `Sets: ${G.pSets} × ${G.aSets}`;
 
+  // Campaign match progress indicator
+  const cp = document.getElementById('campaign-progress');
+  if (cp) {
+    cp.style.display = G.gameMode === 'campaign' ? 'inline-block' : 'none';
+    const lbl = document.getElementById('campaign-match-label');
+    if (lbl && G.campaignMatchIndex) {
+      const cfg = CAMPAIGN_MATCH_CONFIG[G.campaignMatchIndex - 1];
+      lbl.textContent = cfg ? cfg.label : '';
+    }
+  }
+
   // Phase label
   let detailedPhase = '';
   if (G.blockWindow) {
@@ -216,7 +227,8 @@ function showRewards(rewardCards) {
     cardEl.onclick = () => {
       addCardToReward(card.id);
       document.getElementById('rewards-overlay').style.display = 'none';
-      startPoint();
+      if (G.gameMode === 'campaign') startNextCampaignMatch();
+      else startPoint();
     };
     rewardsCards.appendChild(cardEl);
   });
@@ -226,9 +238,19 @@ function showRewards(rewardCards) {
 
 function showEnd(won) {
   const oppNameCap = G.gameMode === 'multiplayer' ? 'Oponente' : 'IA';
-  document.getElementById('overlay-title').textContent = won ? '🏆 Vitória!' : '💔 Derrota';
-  document.getElementById('overlay-msg').textContent   = won
-    ? `Você venceu! ${G.pSets}×${G.aSets} em sets.`
-    : `${oppNameCap} venceu. ${G.aSets}×${G.pSets} em sets.`;
+  const isCampaignFinal = G.gameMode === 'campaign' && G.campaignMatchIndex === CAMPAIGN_MATCH_CONFIG.length;
+
+  if (won && isCampaignFinal) {
+    document.getElementById('overlay-title').textContent = '🏆 Campeão da Temporada!';
+    document.getElementById('overlay-msg').textContent   = 'Você venceu os 3 jogos e conquistou o título. Incrível!';
+  } else if (won) {
+    document.getElementById('overlay-title').textContent = '🏆 Vitória!';
+    document.getElementById('overlay-msg').textContent   = `Você venceu! ${G.pSets}×${G.aSets} em sets.`;
+  } else {
+    document.getElementById('overlay-title').textContent = '💔 Derrota';
+    document.getElementById('overlay-msg').textContent   = G.gameMode === 'campaign'
+      ? `Campanha encerrada. ${oppNameCap} venceu. Tente novamente!`
+      : `${oppNameCap} venceu. ${G.aSets}×${G.pSets} em sets.`;
+  }
   document.getElementById('overlay').style.display = 'flex';
 }

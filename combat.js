@@ -234,8 +234,10 @@ function resolvePlayerAttack(pow, attackCard) {
     return;
   }
 
-  // AI decides whether to attempt blocking (60% chance)
-  const aiWillBlock = Math.random() < 0.60;
+  // AI block chance scales with difficulty: 0=easy 30%, 1=medium 50%, 2=hard 70%
+  const blockChances = [0.30, 0.50, 0.70];
+  const aiBlockChance = blockChances[G.aiDifficulty ?? 1];
+  const aiWillBlock = Math.random() < aiBlockChance;
   let currentPow = pow;
 
   if (aiWillBlock) {

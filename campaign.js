@@ -12,6 +12,13 @@
 // Single source of truth for base deck composition (used in campaign.html preview and deck.js buildDeck)
 const BASE_DECK_COPIES = { service: 3, defense: 3, setting: 2, attack: 3, block: 3 };
 
+// Campaign 1: 3 fixed matches with escalating set disadvantage and AI difficulty
+const CAMPAIGN_MATCH_CONFIG = [
+  { matchIndex: 1, pSets: 1, aSets: 0, aiDifficulty: 0, label: 'Jogo 1 de 3' },
+  { matchIndex: 2, pSets: 1, aSets: 1, aiDifficulty: 1, label: 'Semifinal'    },
+  { matchIndex: 3, pSets: 0, aSets: 1, aiDifficulty: 2, label: 'Final'        },
+];
+
 const CAMPAIGN_TEAMS = {
 
   // ── Dupla 1: Ataque ────────────────────────────────────────────────────────
