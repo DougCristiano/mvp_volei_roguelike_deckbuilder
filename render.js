@@ -215,13 +215,13 @@ function showRewards(rewardCards) {
     `;
     cardEl.onclick = () => {
       addCardToReward(card.id);
-      document.getElementById('rewards-overlay').classList.remove('show');
+      document.getElementById('rewards-overlay').style.display = 'none';
       startPoint();
     };
     rewardsCards.appendChild(cardEl);
   });
 
-  document.getElementById('rewards-overlay').classList.add('show');
+  document.getElementById('rewards-overlay').style.display = 'flex';
 }
 
 function showEnd(won) {

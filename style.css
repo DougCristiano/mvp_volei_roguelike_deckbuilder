@@ -163,7 +163,6 @@ body{font-family:system-ui,sans-serif;background:var(--sky);min-height:100vh;col
 
 /* ── Rewards Overlay ──────────────────────────────────────────── */
 #rewards-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:101;backdrop-filter:blur(4px);}
-#rewards-overlay.show{display:flex;}
 #rewards-box{background:linear-gradient(135deg,var(--card-bg) 0%,#FFFEF8 100%);border-radius:16px;padding:32px;max-width:480px;width:90%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.3);animation:overlaySlide 0.4s cubic-bezier(0.34,1.56,0.64,1);}
 #rewards-title{font-size:32px;font-weight:900;margin-bottom:8px;background:linear-gradient(135deg,#FFD700 0%,var(--energy-gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 #rewards-subtitle{font-size:14px;color:var(--text-mid);margin-bottom:24px;line-height:1.6;font-weight:500;}
