@@ -733,10 +733,10 @@ Toda mensagem embute `data.energy = G.energy` para sincronizar energia do remete
 - `index.html` — botão "🏆 Iniciar Campanha" adicionado ao menu; `campaign.js` carregado após `data.js`
 - `G.campaignTeam` — id da dupla selecionada (string ou null)
 - `G.freeBlockUsed` — flag para o passivo de A Muralha (1 bloqueio grátis por ponto)
-- 3 duplas de crianças com arquétipos distintos:
-  - 🔥 **Os Meteoros** (Lucas & Kauã) — ATK 5/DEF 2/BLK 3 — deck 9×attack/5×service — passivo: +2 poder em cada ataque
-  - 🧱 **A Muralha** (Thiago & Felipe) — ATK 2/DEF 3/BLK 5 — deck 9×block/5×service — passivo: 1° bloqueio por ponto custa 0 energia
-  - 🛡️ **A Fortaleza** (Ana & Júlia) — ATK 3/DEF 5/BLK 2 — deck 9×defense/5×service — passivo: +5% taxa de sucesso de defesa
+- 3 duplas de crianças com arquétipos distintos (deck minimalista: 16 cartas, especialidade +2):
+  - 🔥 **Os Meteoros** (Lucas & Kauã) — ATK 5/DEF 2/BLK 3 — deck: 3×srv/3×def/2×set/**5×atk**/3×blk = 16 cartas — passivo: +2 poder em cada ataque
+  - 🧱 **A Muralha** (Thiago & Felipe) — ATK 2/DEF 3/BLK 5 — deck: 3×srv/3×def/2×set/3×atk/**5×blk** = 16 cartas — passivo: 1° bloqueio por ponto custa 0 energia
+  - 🛡️ **A Fortaleza** (Ana & Júlia) — ATK 3/DEF 5/BLK 2 — deck: 3×srv/**5×def**/2×set/3×atk/3×blk = 16 cartas — passivo: +5% taxa de sucesso de defesa
 
 #### Alterado
 - `state.js:newGame(gameMode, isHost, campaignTeam)` — novo 3° parâmetro; `G.campaignTeam` e `G.freeBlockUsed` adicionados ao estado; log de apresentação da dupla e passivo no início da partida

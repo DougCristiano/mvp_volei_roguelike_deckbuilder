@@ -4,10 +4,11 @@
 
 function buildDeck() {
   let pool = [];
-  const types = ['service', 'setting', 'attack', 'defense', 'block', 'coach'];
+  const types = ['service', 'defense', 'setting', 'attack', 'block'];
 
-  // Default: 7 copies per type. Campaign teams shift 2 copies toward their specialty.
-  const copies = { service: 7, setting: 7, attack: 7, defense: 7, block: 7, coach: 7 };
+  // Minimalista: base 3 srv + 3 def + 2 set + 3 atk + 3 blk = 14 cartas
+  // Campaign teams shift +2 to their specialty (no coach in starting deck).
+  const copies = { service: 3, defense: 3, setting: 2, attack: 3, block: 3 };
   if (G.campaignTeam && typeof CAMPAIGN_TEAMS !== 'undefined') {
     const bias = CAMPAIGN_TEAMS[G.campaignTeam]?.deckBias;
     if (bias) Object.assign(copies, bias);
@@ -15,7 +16,7 @@ function buildDeck() {
 
   types.forEach(t => {
     const typeCards = CARDS_DB.filter(c => c.type === t);
-    const n = copies[t] ?? 7;
+    const n = copies[t] ?? 3;
     for (let i = 0; i < n; i++) pool.push({ ...typeCards[i % typeCards.length] });
   });
   G.deck = shuffle(pool);
