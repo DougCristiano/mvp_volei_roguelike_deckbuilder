@@ -44,33 +44,36 @@ function clearHand() {
 }
 
 // Draws up to 3 cards valid for the current phase into the hand.
-// Coach cards are excluded when G.coachUsed is true or during service/block phases.
+// Coach cards are excluded only when G.coachUsed is true (already used this point).
+// If G.nextPhaseExtraCard is true, draws 4 cards instead of 3 (draw1 coach bonus).
 // Recycles discard pile if the deck runs out.
 function drawPhaseOptions() {
   clearHand();
 
   let phases = [];
-  if (G.blockWindow)      phases = ['block'];
-  else if (G.defWindow)   phases = ['defense', 'coach'];
-  else                    phases = [G.phase, 'coach'];
+  if (G.blockWindow)    phases = ['block', 'coach'];
+  else if (G.defWindow) phases = ['defense', 'coach'];
+  else                  phases = [G.phase, 'coach'];
 
-  // Coach is not available during service or when already used this point
-  if (G.phase === 'service' || G.coachUsed) {
-    phases = phases.filter(p => p !== 'coach');
-  }
+  // Coach excluded only when already used this point
+  if (G.coachUsed) phases = phases.filter(p => p !== 'coach');
+
+  // draw1 coach bonus: extra option on next phase draw
+  const drawCount = G.nextPhaseExtraCard ? 4 : 3;
+  G.nextPhaseExtraCard = false;
 
   let found = [];
-  for (let i = G.deck.length - 1; i >= 0 && found.length < 3; i--) {
+  for (let i = G.deck.length - 1; i >= 0 && found.length < drawCount; i--) {
     if (G.deck[i].phases.some(p => phases.includes(p))) {
       found.push(G.deck.splice(i, 1)[0]);
     }
   }
 
   // Recycle discard if deck ran dry
-  if (found.length < 3) {
+  if (found.length < drawCount) {
     G.deck = shuffle([...G.deck, ...G.discard]);
     G.discard = [];
-    for (let i = G.deck.length - 1; i >= 0 && found.length < 3; i--) {
+    for (let i = G.deck.length - 1; i >= 0 && found.length < drawCount; i--) {
       if (G.deck[i].phases.some(p => phases.includes(p))) {
         found.push(G.deck.splice(i, 1)[0]);
       }

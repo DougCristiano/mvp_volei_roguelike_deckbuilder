@@ -59,8 +59,9 @@ function newGame(gameMode = 'ai', isHost = false, campaignTeam = null) {
     aiJustDefended: false,
     isDefendingServe: false,
     defenseQuality: null,
-    coachUsed: false,      // Dica do Treinador limited to 1 use per point
-    freeBlockUsed: false,  // A Muralha passive: first block per point costs 0 energy
+    coachUsed: false,           // Dica do Treinador limited to 1 use per point
+    freeBlockUsed: false,       // A Muralha passive: first block per point costs 0 energy
+    nextPhaseExtraCard: false,  // draw1 coach bonus: next drawPhaseOptions draws 4 instead of 3
 
     // Log (newest at index 0)
     log: [],
@@ -98,7 +99,7 @@ function startNextCampaignMatch() {
   }
 
   const matchCfg  = CAMPAIGN_MATCH_CONFIG[nextIndex - 1];
-  const savedDeck = [...G.deck]; // preserve rewards earned so far
+  const savedDeck = [...G.deck, ...G.hand, ...G.discard]; // preserve all cards (deck + hand + discard)
 
   // Reset match state without rebuilding the deck
   G.campaignMatchIndex = nextIndex;
@@ -119,6 +120,7 @@ function startNextCampaignMatch() {
   G.defenseQuality     = null;
   G.coachUsed          = false;
   G.freeBlockUsed      = false;
+  G.nextPhaseExtraCard = false;
   G.selected           = [];
   G.hand               = [];
   G.discard            = [];
@@ -152,8 +154,9 @@ function startPoint() {
   G.aiJustDefended   = false;
   G.isDefendingServe = false;
   G.defenseQuality   = null;
-  G.coachUsed        = false;
-  G.freeBlockUsed    = false;
+  G.coachUsed          = false;
+  G.freeBlockUsed      = false;
+  G.nextPhaseExtraCard = false;
   clearInterval(G.blockInterval);
   clearInterval(G.defInterval);
   hidePointResult();

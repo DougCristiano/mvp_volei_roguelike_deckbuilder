@@ -7,7 +7,7 @@ const { CARDS_DB, PHASE_NAMES, COMBO_SEQ, DEFENSE_QUALITY_RANGES } =
 
 const VALID_TYPES  = ['service', 'defense', 'setting', 'attack', 'block', 'coach'];
 const VALID_LEVELS = ['basico', 'intermediario', 'avancado'];
-const VALID_PHASES = ['service', 'defense', 'setting', 'attack', 'block'];
+const VALID_PHASES = ['service', 'defense', 'setting', 'attack', 'block', 'coach'];
 const BONUS_VALUES = ['energy2', 'atkBoost3', 'atkBoost6', 'aiDefMinus2', 'draw1'];
 
 // ── CARDS_DB ─────────────────────────────────────────────────────────────────
@@ -70,18 +70,9 @@ describe('CARDS_DB — schema', () => {
 });
 
 describe('CARDS_DB — type-specific rules', () => {
-  test('coach cards include defense, setting, and attack phases', () => {
+  test('coach cards use only the "coach" phase identifier', () => {
     CARDS_DB.filter(c => c.type === 'coach').forEach(c => {
-      expect(c.phases).toContain('defense');
-      expect(c.phases).toContain('setting');
-      expect(c.phases).toContain('attack');
-    });
-  });
-
-  test('coach cards do NOT include service or block phases', () => {
-    CARDS_DB.filter(c => c.type === 'coach').forEach(c => {
-      expect(c.phases).not.toContain('service');
-      expect(c.phases).not.toContain('block');
+      expect(c.phases).toEqual(['coach']);
     });
   });
 

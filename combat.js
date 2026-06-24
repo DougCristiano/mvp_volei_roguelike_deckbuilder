@@ -93,9 +93,22 @@ function startDefenseWindow(isServe = false) {
 function resolveBlock() {
   if (!G.blockWindow || G.pointDone) return;
   clearInterval(G.blockInterval);
-  const idx  = G.selected[0];
-  const card = G.hand[idx];
+
+  // Find block card and optional coach card by type
+  const blockIdx = G.selected.find(i => G.hand[i]?.type !== 'coach');
+  const coachIdx = G.selected.find(i => G.hand[i]?.type === 'coach');
+  const card = blockIdx !== undefined ? G.hand[blockIdx] : null;
   G.blockWindow = false;
+
+  // Apply coach bonus before resolving block
+  if (coachIdx !== undefined) {
+    const cc = G.hand[coachIdx];
+    G.coachUsed = true;
+    G.energy -= cc.cost;
+    applyBonus(cc);
+    if (cc.bonus === 'draw1') G.nextPhaseExtraCard = true;
+    log(`📋 ${cc.name}`);
+  }
 
   if (!card) {
     log('🏃 Você deixou o bloqueio passar. Preparando defesa...');
@@ -151,17 +164,29 @@ function resolveDefense() {
   if (!G.defWindow || G.pointDone) return;
   clearInterval(G.defInterval);
 
+  // Apply coach bonus first (energy2 may restore before defense deducts)
+  [...G.selected].forEach(idx => {
+    const c = G.hand[idx];
+    if (c?.type === 'coach') {
+      G.coachUsed = true;
+      G.energy -= c.cost;
+      applyBonus(c);
+      if (c.bonus === 'draw1') G.nextPhaseExtraCard = true;
+      log(`📋 ${c.name}`);
+    }
+  });
+
   let defPow = 0;
   [...G.selected].sort((a, b) => b - a).forEach(idx => {
     const c = G.hand[idx];
-    if (c && c.phases.includes('defense') && c.cost <= G.energy) {
+    if (c && c.type !== 'coach' && c.phases.includes('defense') && c.cost <= G.energy) {
       defPow += c.power;
       G.energy -= c.cost;
       log(`🛡 ${c.name} (poder ${c.power})`);
     }
   });
 
-  if (G.selected.length > 0) G.comboIdx = 1; // defense counts as 1st combo touch
+  if (G.selected.some(i => G.hand[i]?.type !== 'coach')) G.comboIdx = 1; // defense counts as 1st combo touch
 
   clearHand();
   G.defWindow = false;

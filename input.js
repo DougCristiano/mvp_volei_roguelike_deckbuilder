@@ -6,6 +6,14 @@
 //             ai.js (aiTurn), audio.js (sounds)
 
 function canPlay(card) {
+  // Coach: only playable as modifier when a phase card is already selected
+  if (card.type === 'coach') {
+    if (G.coachUsed) return false;
+    const hasPhaseCard = G.selected.some(i => G.hand[i]?.type !== 'coach');
+    if (!hasPhaseCard) return false;
+    const selCost = G.selected.reduce((s, i) => s + (G.hand[i]?.cost || 0), 0);
+    return card.cost + selCost <= G.energy;
+  }
   if (G.defWindow)   return card.phases.includes('defense') && card.cost <= G.energy;
   if (G.blockWindow) return card.phases.includes('block')   && card.cost <= G.energy;
   return card.phases.includes(G.phase) && card.cost <= G.energy;
@@ -14,61 +22,66 @@ function canPlay(card) {
 function selectCard(idx) {
   if (G.locked || G.pointDone) return;
   const card = G.hand[idx];
-  if (!card || !canPlay(card)) return;
-  if (G.defWindow || G.blockWindow) {
-    const si = G.selected.indexOf(idx);
-    if (si >= 0) G.selected.splice(si, 1);
-    else G.selected.push(idx);
+  if (!card) return;
+
+  // Deselect if already selected
+  const si = G.selected.indexOf(idx);
+  if (si >= 0) {
+    // Removing the phase card: coach can't remain alone — clear all
+    if (card.type !== 'coach') G.selected = [];
+    else G.selected.splice(si, 1);
+    render();
+    return;
+  }
+
+  if (!canPlay(card)) return;
+
+  if (card.type === 'coach') {
+    // canPlay already guarantees a phase card is selected
+    G.selected.push(idx);
   } else {
-    G.selected = G.selected[0] === idx ? [] : [idx];
+    // Phase card: replace existing phase card selection, preserve coach if present
+    const coachSel = G.selected.find(i => G.hand[i]?.type === 'coach');
+    G.selected = coachSel !== undefined ? [coachSel] : [];
+    G.selected.push(idx);
   }
   render();
 }
 
 function playCard() {
   if (G.selected.length === 0 || G.locked || G.pointDone) return;
-  const idx  = G.selected[0];
-  const card = G.hand[idx];
+
+  // Separate phase card from optional coach card
+  const phaseIdx = G.selected.find(i => G.hand[i]?.type !== 'coach');
+  const coachIdx = G.selected.find(i => G.hand[i]?.type === 'coach');
+  if (phaseIdx === undefined) return;
+
+  const card      = G.hand[phaseIdx];
+  const coachCard = coachIdx !== undefined ? G.hand[coachIdx] : null;
   if (!card) return;
 
-  // Card fly animation
-  const cardEl = document.querySelectorAll('.card')[idx];
+  // Card fly animation on the phase card
+  const cardEl = document.querySelectorAll('.card')[phaseIdx];
   if (cardEl) cardEl.style.animation = 'cardFlying 0.6s ease-in-out forwards';
 
   G.locked = true;
   sounds.cardPlay();
+
+  // Apply coach bonus first (energy2 can restore before phase card deducts)
+  if (coachCard) {
+    G.coachUsed = true;
+    G.energy -= coachCard.cost;
+    applyBonus(coachCard);
+    if (coachCard.bonus === 'draw1') G.nextPhaseExtraCard = true;
+    log(`📋 ${coachCard.name}`);
+  }
+
   G.energy -= card.cost;
   applyBonus(card);
   log(`✅ ${card.name} [${PHASE_NAMES[G.phase]}, poder ${card.power}]`);
   updateCombo(card);
 
   if (G.gameMode === 'multiplayer') sendData({ type: 'PLAY_CARD', cardId: card.id });
-
-  // Coach cards (Dica do Treinador) redraw in the same phase; limited to 1 per point
-  if (card.type === 'coach') {
-    G.coachUsed = true;
-    log('📋 Dica do Técnico usada! (1 por ponto)');
-    clearHand();
-    drawPhaseOptions();
-    if (card.bonus === 'draw1') {
-      const phases = G.defWindow ? ['defense'] : [G.phase];
-      let extra = null;
-      for (let i = G.deck.length - 1; i >= 0 && !extra; i--) {
-        if (G.deck[i].phases.some(p => phases.includes(p)) && G.deck[i].type !== 'coach') extra = G.deck.splice(i, 1)[0];
-      }
-      if (!extra && G.discard.length > 0) {
-        G.deck = shuffle([...G.deck, ...G.discard]);
-        G.discard = [];
-        for (let i = G.deck.length - 1; i >= 0 && !extra; i--) {
-          if (G.deck[i].phases.some(p => phases.includes(p)) && G.deck[i].type !== 'coach') extra = G.deck.splice(i, 1)[0];
-        }
-      }
-      if (extra) G.hand.push(extra);
-    }
-    G.locked = false;
-    render();
-    return;
-  }
 
   clearHand();
 
@@ -136,7 +149,7 @@ function rerollOption() {
   if (G.blockWindow)    phases = ['block', 'coach'];
   else if (G.defWindow) phases = ['defense', 'coach'];
   else                  phases = [G.phase, 'coach'];
-  if (G.phase === 'service' || G.coachUsed) phases = phases.filter(p => p !== 'coach');
+  if (G.coachUsed) phases = phases.filter(p => p !== 'coach');
 
   let found = [];
   for (let i = G.deck.length - 1; i >= 0 && found.length < 1; i--) {

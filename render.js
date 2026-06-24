@@ -145,12 +145,12 @@ function renderActions() {
     bPlay.style.display = 'none'; bBlk.style.display  = 'none';
     bDraw.style.display = 'block'; bPass.style.display = 'none';
     bRes.style.display  = 'block'; bSkip.style.display = 'none';
-    bRes.disabled = G.selected.length === 0;
+    bRes.disabled = !G.selected.some(i => G.hand[i]?.type !== 'coach');
   } else if (G.blockWindow) {
     bPlay.style.display = 'none'; bRes.style.display  = 'none';
     bDraw.style.display = 'block'; bPass.style.display = 'none';
     bBlk.style.display  = 'block'; bSkip.style.display = 'block';
-    bBlk.disabled  = G.selected.length === 0;
+    bBlk.disabled  = !G.selected.some(i => G.hand[i]?.type !== 'coach');
     bSkip.disabled = G.locked;
   } else {
     bPlay.style.display = 'block'; bBlk.style.display  = 'none';

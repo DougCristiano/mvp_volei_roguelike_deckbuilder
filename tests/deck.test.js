@@ -16,6 +16,7 @@ function makeG(overrides = {}) {
     blockWindow: false,
     defWindow: false,
     coachUsed: false,
+    nextPhaseExtraCard: false,
     log: [],
     ...overrides,
   };
@@ -205,12 +206,16 @@ describe('drawPhaseOptions — service phase', () => {
     buildDeck();
   });
 
-  test('draws only service-phase cards', () => {
+  test('draws only service or coach cards', () => {
     drawPhaseOptions();
-    G.hand.forEach(c => expect(c.phases).toContain('service'));
+    G.hand.forEach(c => {
+      const valid = c.phases.includes('service') || c.type === 'coach';
+      expect(valid).toBe(true);
+    });
   });
 
-  test('never draws coach cards in service phase', () => {
+  test('never draws coach cards in service phase when coachUsed=true', () => {
+    G.coachUsed = true;
     drawPhaseOptions();
     G.hand.forEach(c => expect(c.type).not.toBe('coach'));
   });
@@ -222,12 +227,16 @@ describe('drawPhaseOptions — block phase', () => {
     buildDeck();
   });
 
-  test('draws only block-phase cards when blockWindow is true', () => {
+  test('draws only block or coach cards when blockWindow is true', () => {
     drawPhaseOptions();
-    G.hand.forEach(c => expect(c.phases).toContain('block'));
+    G.hand.forEach(c => {
+      const valid = c.phases.includes('block') || c.type === 'coach';
+      expect(valid).toBe(true);
+    });
   });
 
-  test('never draws coach cards during block window', () => {
+  test('excludes coach cards during block window when coachUsed=true', () => {
+    G.coachUsed = true;
     drawPhaseOptions();
     G.hand.forEach(c => expect(c.type).not.toBe('coach'));
   });
@@ -239,11 +248,13 @@ describe('drawPhaseOptions — attack phase with coach', () => {
     buildDeck();
   });
 
-  test('all drawn cards include "attack" in phases (attack cards + coach cards qualify)', () => {
-    // Coach cards have phases: ['defense','setting','attack'] — 'attack' is included.
-    // Both attack and coach cards are valid in this phase, and both contain 'attack'.
+  test('draws only attack or coach cards in attack phase', () => {
+    // Coach cards have phases:['coach'] and are valid alongside attack cards.
     drawPhaseOptions();
-    G.hand.forEach(c => expect(c.phases).toContain('attack'));
+    G.hand.forEach(c => {
+      const valid = c.phases.includes('attack') || c.type === 'coach';
+      expect(valid).toBe(true);
+    });
   });
 
   test('excludes coach cards when coachUsed=true', () => {
