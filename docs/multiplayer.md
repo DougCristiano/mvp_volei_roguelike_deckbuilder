@@ -20,12 +20,13 @@ Every message embeds `data.energy = G.energy` for opponent energy mirroring.
 |---|---|---|---|
 | `PLAY_CARD` | either | `cardId` | Card played by sender |
 | `REROLL` | either | — | Card rerolled (−1⚡ info) |
+| `SETTING_PLAY` | either | `cardId` | Setting card played (transitions to attack phase) |
 | `PASS_BALL` | either | `forced` | Ball passed |
 | `SERVICE_ERROR` | either | `errorType: 'out'|'net'` | Serve error type |
 | `SERVICE_SUCCESS` | either | `power` | Serve landed |
 | `ATTACK` | either | `power, cardId` | Attack launched |
 | `BLOCK_SKIPPED` | either | — | Block window skipped |
-| `BLOCK_RESULT` | either | `cardId, resultType` | Block outcome |
+| `BLOCK_RESULT` | either | `cardId, resultType` | Block outcome (`POINT_DIRECT`, `OUT`, `SOFTEN`, `CONTINUE`) |
 | `DEFENSE_SUCCESS` | either | `defPow, quality, gap` | Defense succeeded with quality tier |
 | `DEFENSE_FAIL` | either | `defPow, quality, gap` | Defense failed |
 | `POINT_END` | host only | `winnerRole, hostPts, clientPts, hostSets, clientSets, nextServerRole, reason` | Authoritative point result |

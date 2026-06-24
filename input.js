@@ -105,6 +105,7 @@ function playCard() {
   } else if (G.phase === 'setting') {
     G.phase = 'attack';
     log('💥 A bola está no alto! Escolha o ataque.');
+    if (G.gameMode === 'multiplayer') sendData({ type: 'SETTING_PLAY', cardId: card.id });
     G.locked = false;
     drawPhaseOptions();
     checkFreeball();

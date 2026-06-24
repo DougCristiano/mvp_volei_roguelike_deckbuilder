@@ -434,17 +434,25 @@
     <li>IA defende com poder 8 (gap = -2 → Vantagem Ofensiva, 25% sucesso)</li>
   </ul>
 
-  <h3>Fase de Bloqueio</h3>
+  <h3>Fase de Bloqueio (IA)</h3>
   <p>
-    Se seu ataque passar pela defesa da IA, ela tenta bloquear. O bloqueio tem 4 possíveis resultados:
+    Quando você ataca, a IA tenta bloquear com <strong>60% de chance</strong>. Se bloqueia, o resultado é:
   </p>
   <table>
     <tr><th>Roll</th><th>Probabilidade</th><th>Resultado</th></tr>
-    <tr><td>&lt; 0.20</td><td>20%</td><td>Você marca ponto direto</td></tr>
-    <tr><td>0.20–0.40</td><td>20%</td><td>Bloqueio sai fora — IA marca ponto</td></tr>
-    <tr><td>0.40–0.70</td><td>30%</td><td>Bloqueio enfraquece o ataque — vai para defesa novamente</td></tr>
-    <tr><td>&gt; 0.70</td><td>30%</td><td>Bloqueio toca e IA se recupera — rally continua</td></tr>
+    <tr><td>&lt; 0.20</td><td>20%</td><td>Bloqueio direto — IA marca ponto</td></tr>
+    <tr><td>0.20–0.40</td><td>20%</td><td>Bloqueio sai fora — você marca ponto</td></tr>
+    <tr><td>&gt; 0.40</td><td>60%</td><td>Bloqueio bem-sucedido — seu ataque é reduzido 50%, IA defende</td></tr>
   </table>
+  <p>
+    <strong>Se a IA não bloqueia (40% chance):</strong> seu ataque vai direto para a defesa automática da IA (como antes).
+  </p>
+
+  <h3>Erro de Ataque</h3>
+  <p>
+    Seu ataque também pode sair para fora! Chance de erro: <strong>5% base + (power da carta × 2%)</strong>
+  </p>
+  <p>Exemplo: ataque com poder 5 = 5% + 10% = 15% de erro.</p>
 
   <h3>Dica do Treinador (Coach Cards)</h3>
   <p>
@@ -646,6 +654,16 @@
     <tr><td>Defesa Dominante</td><td>≥ +7</td><td>100%</td><td>~5% (raro)</td><td>Defesa perfeita — contra poderoso</td></tr>
   </table>
 
+  <h3>Block Balance (IA Bloqueio)</h3>
+  <table>
+    <tr><th>Evento</th><th>Probabilidade</th><th>Resultado</th></tr>
+    <tr><td>IA tenta bloquear</td><td>60%</td><td>Entra em fase de bloqueio</td></tr>
+    <tr><td>  → Bloqueio direto</td><td>20%</td><td>Ponto IA</td></tr>
+    <tr><td>  → Bloqueio para fora</td><td>20%</td><td>Seu ponto</td></tr>
+    <tr><td>  → Bloqueio bem-sucedido</td><td>60%</td><td>Seu ataque reduzido 50%, IA defende</td></tr>
+    <tr><td>IA não bloqueia</td><td>40%</td><td>Seu ataque vai para defesa automática IA</td></tr>
+  </table>
+
   <h3>Ciclo de Vida do Jogo</h3>
   <p>
     <strong>Ponto normal:</strong> ~20–30 segundos (3–5 rallies)<br>
@@ -675,7 +693,12 @@
 
   <div class="glossary-entry">
     <dt>🧱 Bloqueio</dt>
-    <dd>Fase defensiva da IA. Após seu ataque passar pela defesa IA, ela tenta bloquear. 4 resultados possíveis: ponto direto, fora, enfraquecimento, ou continuação.</dd>
+    <dd>Fase defensiva da IA. Após seu ataque, IA tenta bloquear com 60% de chance. 3 resultados possíveis: bloqueio direto (ponto IA), para fora (seu ponto), ou bem-sucedido (seu ataque é reduzido 50%, IA defende).</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>❌ Erro de Ataque</dt>
+    <dd>Seu ataque pode sair para fora! Chance: 5% base + (power × 2%). Exemplo: poder 5 = 15% de erro. Se ocorrer, você perde o ponto.</dd>
   </div>
 
   <div class="glossary-entry">

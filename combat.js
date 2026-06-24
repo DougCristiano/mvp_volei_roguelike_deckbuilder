@@ -224,12 +224,77 @@ function resolvePlayerAttack(pow, attackCard) {
     return;
   }
 
-  // AI picks the best defense card it can afford
-  let aiDef = 0;
-  let aiDefCards = [];
+  // Chance of attack going out (error by attacker)
+  const errorChance = 0.05 + (attackCard.power * 0.02);
+  if (Math.random() < errorChance) {
+    log(`❌ Seu ${attackCard.name} foi para fora! Ponto da IA.`);
+    G.aPts++;
+    G.nextServer = 'ai';
+    endPoint('loss', 'Ataque para fora.');
+    return;
+  }
+
+  // AI decides whether to attempt blocking (60% chance)
+  const aiWillBlock = Math.random() < 0.60;
+  let currentPow = pow;
+
+  if (aiWillBlock) {
+    const blockResult = aiResolveBlock(pow, attackCard);
+    if (blockResult.scored) return; // Point was scored, exit
+    if (blockResult.rally) return; // Rally continues with AI attack, exit
+    if (blockResult.softened !== undefined) {
+      currentPow = blockResult.softened; // Reduced power continues to defense
+    }
+  }
+
+  // AI Defense (after block attempt or if decided not to block)
+  aiDefendAgainst(currentPow, attackCard);
+}
+
+// AI attempts to block the player's attack
+function aiResolveBlock(pow, attackCard) {
+  const possibleBlk = CARDS_DB
+    .filter(c => c.phases.includes('block') && c.cost <= G.aiEnergy);
+
+  if (possibleBlk.length === 0) {
+    log('🏃 IA decidiu deixar o bloqueio passar.');
+    return {};
+  }
+
+  const blockCard = possibleBlk[Math.floor(Math.random() * possibleBlk.length)];
+  G.aiEnergy -= blockCard.cost;
+  sounds.block();
+
+  const roll = Math.random();
+
+  if (roll < 0.20) {
+    log(`🧱 O bloqueio IA ${blockCard.name} parou a bola na sua quadra! Ponto da IA.`);
+    G.aPts++;
+    G.nextServer = 'ai';
+    endPoint('loss', 'Bloqueio direto da IA.');
+    return { scored: true };
+  } else if (roll < 0.40) {
+    log(`❌ O bloqueio IA ${blockCard.name} saiu para fora! Ponto seu.`);
+    G.pPts++;
+    G.nextServer = 'player';
+    endPoint('win', 'Bloqueio da IA para fora.');
+    return { scored: true };
+  } else {
+    // Bloqueio bem-sucedido: reduz poder em 50%, IA vai defender
+    const reducedPow = Math.max(1, Math.floor(pow / 2));
+    log(`🧤 O bloqueio IA ${blockCard.name} amorteceu seu ataque. (Poder reduzido para ${reducedPow})`);
+    return { softened: reducedPow };
+  }
+}
+
+// AI defends against the attack
+function aiDefendAgainst(pow, attackCard) {
   const possibleDef = CARDS_DB
     .filter(c => c.phases.includes('defense') && c.cost <= G.aiEnergy)
     .sort((a, b) => b.power - a.power);
+
+  let aiDef = 0;
+  let aiDefCards = [];
 
   if (possibleDef.length > 0) {
     const card = possibleDef[0];

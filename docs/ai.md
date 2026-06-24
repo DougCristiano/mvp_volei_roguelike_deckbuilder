@@ -13,6 +13,16 @@ AI decision-making: card selection, serve, rally sequencing, and attack power ca
 |---|---|
 | `getAIPlay(phase, maxCost)` | Picks a random affordable card; 30% chance to spend +1 energy "drawing" |
 
+## AI capabilities
+The AI is a full mirror of the Player:
+- **Serves**: picks card, has error chance (5% + power×3%)
+- **Blocks**: 60% chance to attempt block when player attacks
+  - 20%: direct point (AI)
+  - 20%: block out of bounds (player point)
+  - 60%: successful block → defense with 50% power reduction
+- **Defends**: picks best available defense card
+- **Attacks**: defense → setting (with bonuses) → attack (with combo)
+
 ## AI turn flow
 ```
 aiTurn()
@@ -22,7 +32,7 @@ aiTurn()
   │     → error chance (5% + power*3%) → endPoint win/loss
   │     → success → startDefenseWindow(true)
   └── targetPhase === 'attack'
-        → getAIPlay('defense') [unless aiJustDefended]
+        → getAIPlay('defense') [unless aiJustDefended or just blocked]
         → getAIPlay('setting')  [may add atkBoost]
         → getAIPlay('attack')   [or freeball if no card]
         → power = card.power + atkBoost + comboBonus + G.aiNextAtkBonus

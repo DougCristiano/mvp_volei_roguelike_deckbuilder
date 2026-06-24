@@ -65,21 +65,30 @@ Jogo de **gerenciamento e estratégia de vôlei de praia** onde o jogador assume
 ### Fluxo de um Rally (modo AI)
 ```
 Saque do Jogador
-  ├── Erro (5% + power*3%) → out ou net (50/50) → Ponto da IA
-  └── Saque cruzou a rede
-        └── IA responde (defesa + levantamento + ataque)
-              └── Janela de Bloqueio (15s)
-                    ├── Jogador bloqueia → 20% ponto / 20% fora / 30% amortece / 30% continua
-                    └── Sem bloqueio → Janela de Defesa (15s)
-                          └── gap = defPow − aiAtkPow → quality tier (getDefenseQuality)
-                                ├── Math.random() < successRate → Defesa OK (quality bonus) → Levantamento → Ataque
-                                │     └── Ataque resolve contra defesa da IA (mesmo sistema de gap/quality)
-                                └── falha → Ponto da IA
+  ├── Erro (5% + power*3%) → out → Ponto da IA
+  └── Saque bem-sucedido
+        └── Janela de Defesa da IA (15s)
+              ├── Defesa falha → Ponto do Jogador
+              └── Defesa OK → IA vai para Levantamento → Ataque
+                    └── Ataque da IA para o Jogador
+                          ├── Erro do Ataque (5% + power*2%) → Ponto do Jogador
+                          └── Ataque OK
+                                └── IA Tenta Bloquear? (60% chance)
+                                      ├── Bloqueia Direto (20%) → Ponto da IA
+                                      ├── Para fora (20%) → Ponto do Jogador
+                                      └── Bloqueia bem-sucedido (60%) → Poder reduzido a 50%
+                                            └── Janela de Bloqueio do Jogador (15s)
+                                                  ├── Jogador bloqueia → 20% ponto / 20% fora / 60% bem-sucedido (poder reduzido)
+                                                  └── Sem bloqueio → Janela de Defesa (15s)
+                                                        └── gap = defPow − attackPow → quality tier
+                                                              ├── success → Defesa OK → Levantamento → Ataque
+                                                              └── falha → Ponto da IA
 
 Saque da IA
   └── Janela de Defesa do Jogador (15s)
         └── gap = defPow − aiAtkPow → quality tier
               ├── success → Posse do Jogador + nextAttackBonus → Levantamento → Ataque
+              │     └── (mesmo fluxo com bloqueio da IA)
               └── falha → Ponto da IA
 ```
 
@@ -784,5 +793,28 @@ Toda mensagem embute `data.energy = G.energy` para sincronizar energia do remete
 - Tipo `'support'` — substituído por `'coach'` em todos os arquivos
 
 ---
+
+### [2026-06-24] IA como Espelho do Jogador + Sincronização Multiplayer
+
+#### Adicionado (IA agora é espelho do Player)
+- `combat.js:aiResolveBlock(pow, attackCard)` — IA tenta bloquear com 60% de chance quando Player ataca
+  - 20%: bloqueio direto → ponto IA
+  - 20%: bloqueio para fora → ponto Player
+  - 60%: bloqueio bem-sucedido → poder reduzido 50% → continua para defesa
+- `combat.js:aiDefendAgainst(pow, attackCard)` — IA defende com poder reduzido (se bloqueio amorteceu) ou normal
+- Erro de ataque do Player: 5% base + (power × 2%) → ataque sai para fora → ponto IA
+- Multiplicador de bloqueio unificado: amortece e continua agora têm mesmo resultado (ambos levam a defesa com poder reduzido)
+
+#### Alterado (Multiplayer fixes)
+- `input.js:playCard()` — adiciona `sendData({ type: 'SETTING_PLAY', cardId })` quando Player joga carta de levantamento
+- `multiplayer.js` — adicionado handler para `SETTING_PLAY`: sincroniza transição para fase de ataque
+- `multiplayer.js:BLOCK_RESULT 'SOFTEN'` — agora chama `startDefenseWindow(false)` corretamente (estava ignorando)
+- `combat.js:resolvePlayerAttack()` — refatorado para chamar `aiResolveBlock()` primeiro, depois `aiDefendAgainst()` se bloqueio não marcou ponto
+
+#### Documentação atualizada
+- `docs/combat.md` — nova seção "AI decision to block" com probabilidades; "Attack error" com fórmula
+- `docs/ai.md` — nova seção "AI capabilities" listando bloqueio, defesa, saque; fluxo de `aiTurn()` atualizado
+- `docs/multiplayer.md` — adicionado `SETTING_PLAY` ao protocol table; `BLOCK_RESULT` com resultTypes documentados
+- `AGENT.md` — fluxo de rally completamente redesenhado com bloqueio da IA como etapa integral
 
 *Documento gerado em 2026-06. Mantenha-o atualizado a cada tarefa relevante.*

@@ -156,6 +156,10 @@ function setupConnectionHandlers(isHost) {
         endPoint('win', 'Bloqueio fora do adversário.');
       } else if (data.resultType === 'SOFTEN') {
         log(`🧤 O bloqueio ${cName} do Oponente amorteceu seu ataque.`);
+        G.aiAtkPow = Math.max(1, Math.floor(G.aiAtkPow / 2));
+        G.possession = 'player';
+        G.locked = false;
+        startDefenseWindow(false);
       } else if (data.resultType === 'CONTINUE') {
         log(`🔁 O bloqueio ${cName} do Oponente devolveu a bola fácil para você!`);
         G.possession = 'player'; G.locked = false;
@@ -181,6 +185,14 @@ function setupConnectionHandlers(isHost) {
       G.pPts++;
       G.nextServer = 'player';
       endPoint('win', 'Ataque superou a defesa do adversário.');
+    }
+
+    if (data.type === 'SETTING_PLAY') {
+      const card = CARDS_DB.find(c => c.id === data.cardId);
+      if (card) log(`🧑‍💻 Oponente levantou: ${card.name}`);
+      G.possession = 'ai';
+      G.locked = true;
+      render();
     }
   });
 
