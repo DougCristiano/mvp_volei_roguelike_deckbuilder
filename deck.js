@@ -54,8 +54,8 @@ function drawPhaseOptions() {
   else if (G.defWindow)   phases = ['defense', 'coach'];
   else                    phases = [G.phase, 'coach'];
 
-  // Coach is not available during service or block, or when already used this point
-  if (G.phase === 'service' || G.blockWindow || G.coachUsed) {
+  // Coach is not available during service or when already used this point
+  if (G.phase === 'service' || G.coachUsed) {
     phases = phases.filter(p => p !== 'coach');
   }
 

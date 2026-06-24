@@ -133,10 +133,10 @@ function rerollOption() {
   if (G.gameMode === 'multiplayer') sendData({ type: 'REROLL' });
 
   let phases = [];
-  if (G.blockWindow)    phases = ['block'];
+  if (G.blockWindow)    phases = ['block', 'coach'];
   else if (G.defWindow) phases = ['defense', 'coach'];
   else                  phases = [G.phase, 'coach'];
-  if (G.phase === 'service' || G.blockWindow || G.coachUsed) phases = phases.filter(p => p !== 'coach');
+  if (G.phase === 'service' || G.coachUsed) phases = phases.filter(p => p !== 'coach');
 
   let found = [];
   for (let i = G.deck.length - 1; i >= 0 && found.length < 1; i--) {

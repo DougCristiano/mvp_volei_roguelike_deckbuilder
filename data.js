@@ -33,8 +33,8 @@ const CARDS_DB = [
   {id:'blk3',name:'Leitura de Bloqueio', type:'block',level:'basico',       cost:1,power:4, desc:'Equilibrado. Boa chance de amortecer.',  phases:['block']},
 
   // ── COACH (Dica do Treinador) — 1 uso por ponto, fases defensivas/ofensivas ──
-  {id:'cch1',name:'Foco do Técnico',    type:'coach',level:'basico',       cost:0,power:0, desc:'+2 Energia. O técnico mantém o atleta concentrado.',      phases:['defense','setting','attack'],bonus:'energy2'},
-  {id:'cch2',name:'Chamada do Técnico', type:'coach',level:'intermediario', cost:1,power:0, desc:'+1 opção extra de carta. Ajuste tático imediato.',        phases:['defense','setting','attack'],bonus:'draw1'},
+  {id:'cch1',name:'Foco do Técnico',    type:'coach',level:'basico',       cost:0,power:0, desc:'+2 Energia. O técnico mantém o atleta concentrado.',      phases:['coach'],bonus:'energy2'},
+  {id:'cch2',name:'Chamada do Técnico', type:'coach',level:'intermediario', cost:1,power:0, desc:'+1 opção extra de carta. Ajuste tático imediato.',        phases:['coach'],bonus:'draw1'},
 ];
 
 const PHASE_NAMES = {
