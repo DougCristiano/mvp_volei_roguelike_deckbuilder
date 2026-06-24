@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ASCENSION — Escolha sua Dupla</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--sand);
+      color: var(--text-dark);
+      min-height: 100svh;
+      min-height: 100vh;
+    }
+
+    /* ── Header ───────────────────────────────────────── */
+    #camp-header {
+      text-align: center;
+      padding: 32px 20px 16px;
+    }
+
+    #camp-header h1 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--sky);
+      margin-bottom: 6px;
+    }
+
+    #camp-header h2 {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: var(--text-dark);
+      margin-bottom: 8px;
+    }
+
+    #camp-header p {
+      font-size: 14px;
+      color: var(--text-mid);
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    .camp-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--card-bg);
+      border: 1.5px solid var(--sand-border);
+      color: var(--text-mid);
+      padding: 6px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .camp-back:hover { border-color: var(--sky); color: var(--sky); }
+
+    /* ── Team grid ───────────────────────────────────── */
+    #team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 20px 40px;
+    }
+
+    /* ── Team card ───────────────────────────────────── */
+    .team-card {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.18s, box-shadow 0.18s;
+      cursor: pointer;
+    }
+
+    .team-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 14px 40px rgba(0,0,0,0.22);
+    }
+
+    .team-card:focus-within {
+      outline: 3px solid #fff;
+      outline-offset: 3px;
+    }
+
+    /* ── Card header (colored) ───────────────────────── */
+    .tc-head {
+      padding: 24px 20px 20px;
+      color: #fff;
+      position: relative;
+    }
+
+    .tc-badge {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.25);
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    .tc-emoji {
+      font-size: 48px;
+      line-height: 1;
+      margin-bottom: 10px;
+      display: block;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+    }
+
+    .tc-name {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin-bottom: 3px;
+    }
+
+    .tc-players {
+      font-size: 13px;
+      opacity: 0.85;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .tc-flavor {
+      font-size: 12px;
+      font-style: italic;
+      opacity: 0.8;
+      line-height: 1.4;
+    }
+
+    /* ── Card body (white bg) ────────────────────────── */
+    .tc-body {
+      background: var(--card-bg);
+      padding: 18px 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .tc-desc {
+      font-size: 13px;
+      color: var(--text-mid);
+      line-height: 1.5;
+    }
+
+    /* ── Stats ───────────────────────────────────────── */
+    .stats-section {}
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 7px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--text-mid);
+      width: 30px;
+      flex-shrink: 0;
+    }
+
+    .stat-dots {
+      display: flex;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .sdot {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      background: var(--sand-border);
+      transition: background 0.1s;
+    }
+
+    .sdot.on {
+      background: var(--dot-color, var(--sky));
+    }
+
+    .stat-num {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-dark);
+      width: 16px;
+      text-align: right;
+    }
+
+    /* ── Passive box ─────────────────────────────────── */
+    .passive-box {
+      background: var(--sand);
+      border: 1.5px solid var(--sand-border);
+      border-left: 4px solid var(--accent-color, var(--sky));
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .passive-title {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent-color, var(--sky));
+      margin-bottom: 4px;
+    }
+
+    .passive-text {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-dark);
+      line-height: 1.4;
+      margin-bottom: 4px;
+    }
+
+    .passive-sub {
+      font-size: 11px;
+      color: var(--text-mid);
+      line-height: 1.4;
+    }
+
+    /* ── Deck preview ────────────────────────────────── */
+    .deck-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .dp-chip {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--sand);
+      border: 1.5px solid var(--sand-border);
+      color: var(--text-mid);
+    }
+
+    .dp-chip.featured {
+      background: var(--accent-color, var(--sky));
+      border-color: var(--accent-color, var(--sky));
+      color: #fff;
+    }
+
+    /* ── Play button ─────────────────────────────────── */
+    .tc-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: #fff;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.12s;
+      margin-top: auto;
+    }
+
+    .tc-btn:hover { opacity: 0.9; transform: scale(1.02); }
+    .tc-btn:active { transform: scale(0.98); }
+
+    /* ── Responsive ──────────────────────────────────── */
+    @media (max-width: 600px) {
+      #camp-header h2 { font-size: 22px; }
+      #team-grid { grid-template-columns: 1fr; padding: 0 14px 32px; }
+      .tc-name { font-size: 19px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="camp-header">
+  <a href="index.html" class="camp-back">← Voltar</a>
+  <h1>🏐 Modo Campeonato</h1>
+  <h2>Escolha sua Dupla</h2>
+  <p>Três duplas, três estilos de jogo. Cada uma com características, cartas e bônus únicos. Escolha a que combina com você.</p>
+</div>
+
+<div id="team-grid">
+  <!-- Cards rendered by JS below -->
+</div>
+
+<script src="campaign.js"></script>
+<script>
+// ── Render team cards ──────────────────────────────────────────────────────
+const STAT_LABELS = { atk: 'ATK', def: 'DEF', blk: 'BLK' };
+
+function renderDots(value, max, color) {
+  let html = '';
+  for (let i = 1; i <= max; i++) {
+    html += `<span class="sdot ${i <= value ? 'on' : ''}" style="${i <= value ? `--dot-color:${color}` : ''}"></span>`;
+  }
+  return html;
+}
+
+function deckLabel(team) {
+  const bias = team.deckBias;
+  const typeNames = {
+    attack: 'Ataque', defense: 'Defesa', block: 'Bloqueio',
+    setting: 'Levant.', service: 'Saque', coach: 'Treinador'
+  };
+
+  return Object.entries({
+    attack: 7, defense: 7, setting: 7, block: 7, service: 7, coach: 7,
+    ...bias,
+  })
+    .filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([t, n]) => {
+      const featured = bias[t] && bias[t] > 7;
+      return `<span class="dp-chip ${featured ? 'featured' : ''}">${n}× ${typeNames[t] || t}</span>`;
+    })
+    .join('');
+}
+
+function buildCards() {
+  const grid = document.getElementById('team-grid');
+
+  Object.values(CAMPAIGN_TEAMS).forEach(team => {
+    const card = document.createElement('div');
+    card.className = 'team-card';
+    card.innerHTML = `
+      <div class="tc-head" style="background: ${team.colorBg};">
+        <span class="tc-badge">${team.specialBadge}</span>
+        <span class="tc-emoji">${team.emoji}</span>
+        <div class="tc-name">${team.name}</div>
+        <div class="tc-players">👤 ${team.players.join(' & ')}</div>
+        <div class="tc-flavor">${team.flavor}</div>
+      </div>
+
+      <div class="tc-body" style="--accent-color: ${team.color};">
+        <div class="tc-desc">${team.desc}</div>
+
+        <div class="stats-section">
+          ${Object.entries(STAT_LABELS).map(([key, label]) => `
+            <div class="stat-row">
+              <span class="stat-label">${label}</span>
+              <div class="stat-dots">${renderDots(team.stats[key], 5, team.color)}</div>
+              <span class="stat-num">${team.stats[key]}/5</span>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="passive-box">
+          <div class="passive-title">⚡ Bônus Passivo</div>
+          <div class="passive-text">${team.passive}</div>
+          <div class="passive-sub">${team.passiveDesc}</div>
+        </div>
+
+        <div>
+          <div class="passive-title" style="margin-bottom:6px;">🃏 Composição do Deck</div>
+          <div class="deck-preview">${deckLabel(team)}</div>
+        </div>
+
+        <button
+          class="tc-btn"
+          style="background: ${team.colorBg};"
+          onclick="selectTeam('${team.id}')"
+        >▶ Jogar com ${team.name}</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function selectTeam(teamId) {
+  const team = CAMPAIGN_TEAMS[teamId];
+  if (!team) return;
+  localStorage.setItem('ascension_campaign_team', teamId);
+  window.location.href = 'index.html';
+}
+
+buildCards();
+</script>
+</body>
+</html>

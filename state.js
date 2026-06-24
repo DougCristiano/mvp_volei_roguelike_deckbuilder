@@ -9,10 +9,11 @@ function log(msg) {
   if (G.log.length > 40) G.log.pop();
 }
 
-function newGame(gameMode = 'ai', isHost = false) {
+function newGame(gameMode = 'ai', isHost = false, campaignTeam = null) {
   G = {
     gameMode,
     isHost,
+    campaignTeam,   // id string ('meteoros'|'muralha'|'fortaleza') or null
 
     // Score
     pPts: 0, aPts: 0, pSets: 0, aSets: 0,
@@ -51,6 +52,7 @@ function newGame(gameMode = 'ai', isHost = false) {
     isDefendingServe: false,
     defenseQuality: null,
     coachUsed: false,      // Dica do Treinador limited to 1 use per point
+    freeBlockUsed: false,  // A Muralha passive: first block per point costs 0 energy
 
     // Log (newest at index 0)
     log: [],
@@ -66,6 +68,13 @@ function newGame(gameMode = 'ai', isHost = false) {
 
   buildDeck();
   startPoint();
+
+  // Campaign: announce the team and its passive in the log
+  if (campaignTeam && typeof CAMPAIGN_TEAMS !== 'undefined' && CAMPAIGN_TEAMS[campaignTeam]) {
+    const t = CAMPAIGN_TEAMS[campaignTeam];
+    log(`${t.emoji} Dupla: ${t.name} (${t.players.join(' & ')})`);
+    log(`⚡ Passivo: ${t.passive}`);
+  }
 }
 
 function startPoint() {
@@ -88,6 +97,7 @@ function startPoint() {
   G.isDefendingServe = false;
   G.defenseQuality   = null;
   G.coachUsed        = false;
+  G.freeBlockUsed    = false;
   clearInterval(G.blockInterval);
   clearInterval(G.defInterval);
   hidePointResult();

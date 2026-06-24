@@ -110,9 +110,12 @@ function playCard() {
     checkFreeball();
     render();
   } else if (G.phase === 'attack') {
-    const total = card.power + G.atkBoost + (G.nextAttackBonus || 0);
+    // Os Meteoros passive: every attack gains +2 power
+    const meteorosBonus = G.campaignTeam === 'meteoros' ? 2 : 0;
+    const total = card.power + G.atkBoost + (G.nextAttackBonus || 0) + meteorosBonus;
     G.atkBoost = 0;
     G.nextAttackBonus = 0;
+    if (meteorosBonus > 0) log('🔥 Bônus Os Meteoros: +2 de ataque!');
     log(`🏐 Você executou ${card.name} com Ataque total ${total}!`);
     render();
     setTimeout(() => resolvePlayerAttack(total, card), 700);

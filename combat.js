@@ -106,7 +106,14 @@ function resolveBlock() {
   }
 
   sounds.block();
-  G.energy -= card.cost;
+  // A Muralha passive: first block per point costs 0 energy
+  let blockCost = card.cost;
+  if (G.campaignTeam === 'muralha' && !G.freeBlockUsed) {
+    blockCost = 0;
+    G.freeBlockUsed = true;
+    log('🧱 Bônus A Muralha: primeiro bloqueio grátis!');
+  }
+  G.energy -= blockCost;
   clearHand();
 
   const roll    = Math.random();
@@ -165,7 +172,14 @@ function resolveDefense() {
 
   log(`⚖ Gap: ${gap} (${quality.emoji} ${quality.desc})`);
 
-  if (Math.random() < quality.successRate) {
+  // A Fortaleza passive: +5% defense success rate on all tiers
+  let successRate = quality.successRate;
+  if (G.campaignTeam === 'fortaleza') {
+    successRate = Math.min(1.0, successRate + 0.05);
+    if (successRate > quality.successRate) log('🛡️ Bônus A Fortaleza: +5% de defesa!');
+  }
+
+  if (Math.random() < successRate) {
     log(`${quality.emoji} Defesa ${quality.desc}! A bola está sob seu controle.`);
     G.nextAttackBonus = quality.nextAtkBonus;
     G.defenseQuality  = quality;

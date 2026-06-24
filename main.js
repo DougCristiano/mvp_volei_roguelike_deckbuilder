@@ -34,6 +34,15 @@ document.getElementById('overlay-btn').addEventListener('click', () => {
 // ── Main menu ─────────────────────────────────────────────────────────────────
 appUI.style.display = 'none'; // Hide game board until mode is chosen
 
+// Campaign: if player selected a team on campaign.html, start immediately
+const _pendingTeam = localStorage.getItem('ascension_campaign_team');
+if (_pendingTeam && CAMPAIGN_TEAMS[_pendingTeam]) {
+  localStorage.removeItem('ascension_campaign_team');
+  mainMenu.style.display = 'none';
+  appUI.style.display    = 'grid';
+  newGame('campaign', false, _pendingTeam);
+}
+
 btnStartAI.addEventListener('click', () => {
   mainMenu.style.display = 'none';
   appUI.style.display    = 'grid';

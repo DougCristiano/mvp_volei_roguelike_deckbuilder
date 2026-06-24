@@ -365,6 +365,8 @@ Tema praia, claro. Variáveis CSS em `:root`:
 ```
 mvp_volei_roguelike_deckbuilder/
 ├── index.html          # HTML structure and UI elements (main menu + game UI)
+├── campaign.html       # Team selection screen — 3 doubles teams, stats, passives; sets localStorage → index.html
+├── campaign.js         # CAMPAIGN_TEAMS data + getCampaignTeam(); loaded after data.js
 ├── catalog.html        # Card collection viewer — unlocked (22) + locked (~99) cards, filters, progress bar
 ├── wiki.html           # Interactive encyclopedia — mechanics, card database, archetypes, stats, glossary
 ├── style.css           # All CSS: theme, layout, responsiveness
@@ -722,6 +724,28 @@ Toda mensagem embute `data.energy = G.energy` para sincronizar energia do remete
 - `wiki.html` — enciclopédia interativa: visão geral, mecânicas (5-tier system), banco de dados de cartas (searchable), 6 arquétipos de construção, estatísticas & balance, glossário completo; link adicionado ao menu
 - `BACKLOG.md` — backlog completo do projeto com: ✅ features completadas, 📋 in-progress, 🔄 5 tiers de roadmap (engine, content, quality, expansion), métricas de sucesso
 - `docs/deck.md` — corrigido `'support'` → `'coach'` e documentada restrição `G.coachUsed`
+
+### [2026-06-23] Campaign mode — team selection & passives
+
+#### Adicionado
+- `campaign.js` — `CAMPAIGN_TEAMS` (3 duplas com id, nome, jogadores, stats, deckBias, passive) + `getCampaignTeam()`
+- `campaign.html` — seleção de dupla: 3 cards coloridos com stats ATK/DEF/BLK (dots), bônus passivo, preview de deck; armazena teamId em `localStorage.ascension_campaign_team` e redireciona para index.html
+- `index.html` — botão "🏆 Iniciar Campanha" adicionado ao menu; `campaign.js` carregado após `data.js`
+- `G.campaignTeam` — id da dupla selecionada (string ou null)
+- `G.freeBlockUsed` — flag para o passivo de A Muralha (1 bloqueio grátis por ponto)
+- 3 duplas de crianças com arquétipos distintos:
+  - 🔥 **Os Meteoros** (Lucas & Kauã) — ATK 5/DEF 2/BLK 3 — deck 9×attack/5×service — passivo: +2 poder em cada ataque
+  - 🧱 **A Muralha** (Thiago & Felipe) — ATK 2/DEF 3/BLK 5 — deck 9×block/5×service — passivo: 1° bloqueio por ponto custa 0 energia
+  - 🛡️ **A Fortaleza** (Ana & Júlia) — ATK 3/DEF 5/BLK 2 — deck 9×defense/5×service — passivo: +5% taxa de sucesso de defesa
+
+#### Alterado
+- `state.js:newGame(gameMode, isHost, campaignTeam)` — novo 3° parâmetro; `G.campaignTeam` e `G.freeBlockUsed` adicionados ao estado; log de apresentação da dupla e passivo no início da partida
+- `state.js:startPoint()` — reseta `G.freeBlockUsed = false`
+- `deck.js:buildDeck()` — lê `G.campaignTeam` e aplica `CAMPAIGN_TEAMS[team].deckBias` ao número de cópias por tipo
+- `combat.js:resolveBlock()` — passivo A Muralha: se `campaignTeam === 'muralha' && !G.freeBlockUsed`, custo do bloqueio = 0
+- `combat.js:resolveDefense()` — passivo A Fortaleza: `successRate = Math.min(1.0, rate + 0.05)` quando `campaignTeam === 'fortaleza'`
+- `input.js:playCard()` (attack) — passivo Os Meteoros: `meteorosBonus = campaignTeam === 'meteoros' ? 2 : 0` somado ao total
+- `main.js` — detecta `localStorage.ascension_campaign_team` no load; se presente, limpa e chama `newGame('campaign', false, teamId)` diretamente
 
 ### [2026-06-23] Test infrastructure & CI gate
 

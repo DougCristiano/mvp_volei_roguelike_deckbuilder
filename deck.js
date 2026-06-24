@@ -5,9 +5,18 @@
 function buildDeck() {
   let pool = [];
   const types = ['service', 'setting', 'attack', 'defense', 'block', 'coach'];
+
+  // Default: 7 copies per type. Campaign teams shift 2 copies toward their specialty.
+  const copies = { service: 7, setting: 7, attack: 7, defense: 7, block: 7, coach: 7 };
+  if (G.campaignTeam && typeof CAMPAIGN_TEAMS !== 'undefined') {
+    const bias = CAMPAIGN_TEAMS[G.campaignTeam]?.deckBias;
+    if (bias) Object.assign(copies, bias);
+  }
+
   types.forEach(t => {
     const typeCards = CARDS_DB.filter(c => c.type === t);
-    for (let i = 0; i < 7; i++) pool.push({ ...typeCards[i % typeCards.length] });
+    const n = copies[t] ?? 7;
+    for (let i = 0; i < n; i++) pool.push({ ...typeCards[i % typeCards.length] });
   });
   G.deck = shuffle(pool);
 }
