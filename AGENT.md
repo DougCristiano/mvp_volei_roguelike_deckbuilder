@@ -364,10 +364,24 @@ Tema praia, claro. Variáveis CSS em `:root`:
 ### Estrutura de Arquivos
 ```
 mvp_volei_roguelike_deckbuilder/
-├── index.html          # HTML structure and UI elements (includes "Ver Coleção" link to catalog.html)
+├── index.html          # HTML structure and UI elements (main menu + game UI)
 ├── catalog.html        # Card collection viewer — unlocked (22) + locked (~99) cards, filters, progress bar
+├── wiki.html           # Interactive encyclopedia — mechanics, card database, archetypes, stats, glossary
 ├── style.css           # All CSS: theme, layout, responsiveness
 ├── AGENT.md            # This file — project source of truth
+├── BACKLOG.md          # Project backlog: completed features, in-progress, tiers 1-5 roadmap
+├── TESTING.md          # Test guide: how to run, what is tested, adding new tests, CI setup
+├── package.json        # Jest devDependency only (no build system — game is vanilla JS)
+├── jest.config.js      # testEnvironment:node, match tests/**/*.test.js, 70% coverage threshold
+│
+├── tests/
+│   ├── data.test.js    # Card schema, ID uniqueness, type/level/phase validity (~35 assertions)
+│   ├── combat.test.js  # getDefenseQuality all boundaries, _checkWinCondition win/draw/loss (~40)
+│   └── deck.test.js    # shuffle purity, buildDeck composition, clearHand, drawPhaseOptions (~35)
+│
+└── .github/
+    └── workflows/
+        └── ci.yml      # GitHub Actions: runs npm test on push/PR to main; uploads coverage artifact
 │
 ├── data.js             # CARDS_DB, PHASE_NAMES, COMBO_SEQ, DEFENSE_QUALITY_RANGES
 ├── audio.js            # Web Audio API: playSound(), sounds{}
@@ -704,8 +718,25 @@ Toda mensagem embute `data.energy = G.energy` para sincronizar energia do remete
 - `G.coachUsed: boolean` — limite de 1 uso de carta Coach por ponto
 - `docs/card-catalog.md` — catálogo de design com 120 cartas (6 categorias × 3 níveis); apenas design, sem código ainda
 - Campo `level` no schema de cartas (metadata para progressão futura)
-- `catalog.html` — página de coleção de cartas: 22 desbloqueadas (CARDS_DB) + ~99 bloqueadas (catálogo embutido), filtros por tipo/nível/busca, barra de progresso; link "Ver Coleção" adicionado ao menu principal de `index.html`
+- `catalog.html` — página de coleção de cartas: 22 desbloqueadas (CARDS_DB) + ~99 bloqueadas (catálogo embutido), filtros por tipo/nível/busca, barra de progresso; link adicionado ao menu
+- `wiki.html` — enciclopédia interativa: visão geral, mecânicas (5-tier system), banco de dados de cartas (searchable), 6 arquétipos de construção, estatísticas & balance, glossário completo; link adicionado ao menu
+- `BACKLOG.md` — backlog completo do projeto com: ✅ features completadas, 📋 in-progress, 🔄 5 tiers de roadmap (engine, content, quality, expansion), métricas de sucesso
 - `docs/deck.md` — corrigido `'support'` → `'coach'` e documentada restrição `G.coachUsed`
+
+### [2026-06-23] Test infrastructure & CI gate
+
+#### Adicionado
+- `package.json` + `jest.config.js` — Jest 29 como devDependency; coverage threshold ≥70% em data/combat/deck
+- `tests/data.test.js` — ~35 assertivas: schema de cartas, IDs únicos, distribuição por tipo, DEFENSE_QUALITY_RANGES shape & valores
+- `tests/combat.test.js` — ~40 assertivas: `getDefenseQuality` em todos os 13 boundary values, `_checkWinCondition` win/draw/loss/deuce
+- `tests/deck.test.js` — ~35 assertivas: `shuffle` pureza, `buildDeck` 42-card / 7-por-tipo, `clearHand` state, `drawPhaseOptions` filtros de fase e exclusão de coach
+- `.github/workflows/ci.yml` — GitHub Actions: executa `npm test --ci` em push/PR para main; gera e faz upload do coverage report
+- `TESTING.md` — guia completo: como rodar, arquitetura de testes, como adicionar novos testes, como habilitar branch protection
+
+#### Alterado
+- `data.js` — `module.exports` condicional no final (no-op no browser)
+- `combat.js` — `_checkWinCondition` pure helper extraída de `checkSet`; `module.exports` condicional
+- `deck.js` — `module.exports` condicional no final (exports: shuffle, buildDeck, resetDeck, clearHand, drawPhaseOptions)
 
 #### Removido
 - Tipo `'support'` — substituído por `'coach'` em todos os arquivos

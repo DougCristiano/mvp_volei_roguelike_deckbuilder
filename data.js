@@ -56,3 +56,8 @@ const DEFENSE_QUALITY_RANGES = {
   vantagem_defensiva: { min: +4,        max: +6,       desc: 'Vantagem Defensiva', emoji: '🛡️', nextAtkBonus: +2, successRate: 1.00 },
   defesa_dominante:   { min: +7,        max: Infinity, desc: 'Defesa Dominante',   emoji: '⭐', nextAtkBonus: +4, successRate: 1.00 },
 };
+
+// Node.js / Jest compatibility — no-op in browser (module is undefined there)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { CARDS_DB, PHASE_NAMES, COMBO_SEQ, DEFENSE_QUALITY_RANGES };
+}

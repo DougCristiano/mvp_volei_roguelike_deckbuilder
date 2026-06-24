@@ -5,6 +5,7 @@
 //             audio.js (sounds), ai.js (aiTurn), multiplayer.js (sendData)
 
 // Returns the quality tier object for a given gap (defPow - attackPow).
+// Reads DEFENSE_QUALITY_RANGES from global scope (data.js must load first).
 function getDefenseQuality(gap) {
   for (const [qualityKey, range] of Object.entries(DEFENSE_QUALITY_RANGES)) {
     if (gap >= range.min && gap <= range.max) {
@@ -260,6 +261,14 @@ function endPoint(result, desc) {
   checkSet(result, desc);
 }
 
+// Pure win-condition checker — testable without DOM or G.
+// Returns 'player', 'ai', or null (game still on).
+function _checkWinCondition(pPts, aPts, WIN = 5) {
+  if (pPts >= WIN && pPts - aPts >= 2) return 'player';
+  if (aPts >= WIN && aPts - pPts >= 2) return 'ai';
+  return null;
+}
+
 // Handles set/match scoring after a point ends.
 function checkSet(result, desc) {
   const WIN         = 5;
@@ -299,4 +308,8 @@ function checkSet(result, desc) {
   render();
   if (result === 'win') showPointResult('win', '🎉 Ponto seu!', desc || 'Você venceu o rally.');
   else showPointResult('loss', `❌ Ponto d${G.gameMode === 'multiplayer' ? 'o Oponente' : 'a IA'}`, desc || `${oppNameCap} venceu o rally.`);
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { getDefenseQuality, _checkWinCondition };
 }

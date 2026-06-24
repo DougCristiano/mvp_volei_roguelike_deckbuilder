@@ -71,3 +71,7 @@ function drawPhaseOptions() {
   G.hand = found;
   if (G.hand.length === 0) log(`⚠ Nenhuma opção válida encontrada para ${phases[0]}.`);
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { shuffle, buildDeck, resetDeck, clearHand, drawPhaseOptions };
+}

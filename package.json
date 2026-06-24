@@ -1,0 +1,14 @@
+{
+  "name": "ascension-vb-deckbuilder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Beach volleyball roguelike deckbuilder",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

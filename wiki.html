@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ASCENSION Wiki — Game Encyclopedia</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--sand);
+      color: var(--text-dark);
+      min-height: 100svh;
+      min-height: 100vh;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────────── */
+    #wiki-header {
+      background: linear-gradient(135deg, var(--sky) 0%, #1a4f7a 100%);
+      color: #fff;
+      padding: 14px 20px env(safe-area-inset-right, 0) 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    #wiki-header h1 {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      flex: 1;
+    }
+
+    .wiki-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.15);
+      border: 1.5px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .wiki-back:hover { background: rgba(255,255,255,0.28); }
+
+    /* ── Tabs ─────────────────────────────────────────────────────────── */
+    #wiki-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--sand-border);
+      background: var(--card-bg);
+      position: sticky;
+      top: 53px;
+      z-index: 19;
+      overflow-x: auto;
+      padding: 0 20px;
+    }
+
+    .wiki-tab {
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-mid);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+    }
+    .wiki-tab:hover { color: var(--text-dark); }
+    .wiki-tab.on {
+      color: var(--sky);
+      border-bottom-color: var(--sky);
+    }
+
+    /* ── Content Panels ───────────────────────────────────────────────── */
+    .wiki-panel {
+      display: none;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .wiki-panel.on { display: block; }
+
+    /* ── Typography ───────────────────────────────────────────────────── */
+    h2 { font-size: 24px; margin: 24px 0 12px; color: var(--sky); }
+    h3 { font-size: 18px; margin: 16px 0 8px; color: var(--text-dark); }
+    h4 { font-size: 14px; margin: 12px 0 6px; font-weight: 700; }
+    p { margin: 0 0 12px; line-height: 1.6; }
+    strong { font-weight: 700; }
+    em { font-style: italic; }
+
+    .tier-box {
+      background: var(--card-bg);
+      border-left: 4px solid var(--sky);
+      padding: 12px;
+      margin: 12px 0;
+      border-radius: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      background: var(--card-bg);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    th { background: linear-gradient(135deg, var(--sky) 0%, #1a4f7a 100%); color: #fff; padding: 10px; text-align: left; font-weight: 700; font-size: 12px; }
+    td { padding: 10px; border-top: 1px solid var(--sand-border); }
+    tr:hover { background: rgba(27,159,187,0.06); }
+
+    /* ── Search & Filters ─────────────────────────────────────────────── */
+    .wiki-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+      align-items: center;
+    }
+
+    #wiki-search {
+      padding: 8px 12px;
+      border: 2px solid var(--sand-border);
+      border-radius: 6px;
+      background: var(--card-bg);
+      font-size: 13px;
+      color: var(--text-dark);
+      outline: none;
+      flex: 1;
+      min-width: 200px;
+      transition: border-color 0.15s;
+    }
+    #wiki-search:focus { border-color: var(--sky); }
+
+    .wiki-filter-btn {
+      padding: 6px 12px;
+      border: 2px solid var(--sand-border);
+      border-radius: 999px;
+      background: var(--card-bg);
+      color: var(--text-mid);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s, color 0.12s;
+      white-space: nowrap;
+    }
+    .wiki-filter-btn:hover { border-color: var(--sky); color: var(--sky); }
+    .wiki-filter-btn.on { background: var(--sky); border-color: var(--sky); color: #fff; }
+
+    /* ── Card Grid ─────────────────────────────────────────────────────── */
+    #wiki-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .wc {
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.11);
+      cursor: pointer;
+      transition: transform 0.14s, box-shadow 0.14s;
+      border: 2px solid transparent;
+    }
+    .wc:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.17);
+      border-color: rgba(255,255,255,0.65);
+    }
+
+    .wc-name {
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .wc-power {
+      font-family: 'Arial Black', monospace;
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .wc-desc {
+      font-size: 9px;
+      line-height: 1.4;
+      opacity: 0.85;
+      flex: 1;
+      font-style: italic;
+    }
+
+    .wc-footer {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: auto;
+    }
+
+    .wc-badge {
+      font-size: 8px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.35);
+      color: var(--text-dark);
+      text-transform: uppercase;
+    }
+
+    /* ── Archetype Section ─────────────────────────────────────────────── */
+    .archetype-card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0;
+      border-left: 4px solid var(--sky);
+    }
+
+    .archetype-card h4 {
+      margin-top: 0;
+      color: var(--sky);
+    }
+
+    .archetype-card p { margin: 6px 0; font-size: 13px; }
+
+    /* ── Glossary ─────────────────────────────────────────────────────── */
+    .glossary-entry {
+      margin: 12px 0;
+      padding: 10px;
+      background: var(--card-bg);
+      border-radius: 6px;
+    }
+
+    .glossary-entry dt {
+      font-weight: 700;
+      color: var(--sky);
+      margin-bottom: 4px;
+    }
+
+    .glossary-entry dd {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* ── Responsive ───────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      #wiki-header h1 { font-size: 16px; }
+      #wiki-tabs { padding: 0 10px; }
+      .wiki-tab { padding: 8px 12px; font-size: 12px; }
+      #wiki-card-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+      .wiki-panel { padding: 14px; }
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .stat-box {
+      background: linear-gradient(135deg, var(--sky) 0%, #1a4f7a 100%);
+      color: #fff;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-number { font-size: 28px; font-weight: 900; }
+    .stat-label { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<header id="wiki-header">
+  <a href="index.html" class="wiki-back">← Início</a>
+  <h1>📚 ASCENSION Wiki</h1>
+</header>
+
+<div id="wiki-tabs">
+  <button class="wiki-tab on" data-tab="overview">Visão Geral</button>
+  <button class="wiki-tab" data-tab="mechanics">Mecânicas</button>
+  <button class="wiki-tab" data-tab="cards">Cartas</button>
+  <button class="wiki-tab" data-tab="archetypes">Arquétipos</button>
+  <button class="wiki-tab" data-tab="stats">Estatísticas</button>
+  <button class="wiki-tab" data-tab="glossary">Glossário</button>
+</div>
+
+<!-- ── OVERVIEW ──────────────────────────────────────────────────────── -->
+<div id="overview" class="wiki-panel on">
+  <h2>📖 Bem-vindo a ASCENSION</h2>
+  <p>
+    <strong>ASCENSION</strong> é um roguelike deckbuilder baseado em vôlei de praia. Você constrói um deck único de técnicas de vôlei
+    (saque, defesa, levantamento, ataque, bloqueio, dica do treinador) e enfrenta adversários progressivamente desafiadores.
+  </p>
+
+  <h3>O Jogo em Uma Sentença</h3>
+  <p>
+    Combine cartas de poder variável em rallies tensas onde <strong>gap (diferença de poder) = destino</strong>. Uma defesa perfeita
+    (gap +7) garante ponto, mas um ataque dominante (gap -7) é irresistível. Tudo mais?
+    Probabilístico e emocionante.
+  </p>
+
+  <h3>Por Que Beach Volleyball?</h3>
+  <p>
+    Beach volleyball é excelente para deckbuilders porque:
+  </p>
+  <ul style="margin-left: 20px; margin-bottom: 12px;">
+    <li><strong>Decisões em tempo real:</strong> cada toque (saque → defesa → levantamento → ataque) é uma escolha de carta</li>
+    <li><strong>Brincar com posições:</strong> defensor, levantador ou atacante — diferentes funções, diferentes oportunidades</li>
+    <li><strong>Tensão narrativa:</strong> o gap de poder cria momentos de suspense ("vai passar? vai defender?")</li>
+    <li><strong>Autenticidade:</strong> todas as técnicas são reais — o jogo captura a beleza e estratégia do esporte</li>
+  </ul>
+
+  <h3>Estrutura do Jogo</h3>
+  <p><strong>Um ponto = seis toques:</strong></p>
+  <table>
+    <tr><th>Fase</th><th>Descrição</th></tr>
+    <tr><td><strong>🏐 Saque</strong></td><td>Você serve. Escolha uma carta de saque.</td></tr>
+    <tr><td><strong>🛡️ Defesa</strong></td><td>IA ataca. Você tem 15s para defender. Escolha uma carta de defesa.</td></tr>
+    <tr><td><strong>🤲 Levantamento</strong></td><td>Bola está nas mãos. Você decide para quem levanta — sempre você ataca.</td></tr>
+    <tr><td><strong>⚡ Ataque</strong></td><td>Você ataca. Escolha uma carta de ataque.</td></tr>
+    <tr><td><strong>🧱 Bloqueio</strong></td><td>IA bloqueia. Resultado aleatório (direct point, out, soften, touched).</td></tr>
+    <tr><td><strong>➡️ Próximo Rally</strong></td><td>Se ponto foi marcado, nova posse. Senão, IA defende próximo ataque.</td></tr>
+  </table>
+
+  <h3>Conceitos-Chave</h3>
+  <div class="tier-box">
+    <strong>💥 Gap (Diferença de Poder)</strong><br>
+    Gap = Defesa Power - Ataque Power<br>
+    Um gap positivo significa que o defensor é mais forte. Um gap negativo significa que o atacante domina.
+  </div>
+
+  <div class="tier-box">
+    <strong>⭐ Qualidade de Defesa</strong><br>
+    Baseado no gap, a defesa tem uma qualidade (Ataque Dominante, Vantagem Ofensiva, Equilíbrio, etc.).
+    Qualidades melhores dão bônus ao seu próximo ataque.
+  </div>
+
+  <div class="tier-box">
+    <strong>🔄 Synergias de Cartas</strong><br>
+    Cartas funcionam melhor juntas. Uma defesa excelente cria um ataque poderoso. Um levantador perfeito
+    permite um ataque direto. Planeje seus três toques.
+  </div>
+
+  <div class="tier-box">
+    <strong>📋 Dica do Treinador</strong><br>
+    Cartas especiais que representam instruções do técnico. Limitadas a 1 uso por ponto.
+    Disponíveis em defesa e ataque — não em saque ou bloqueio.
+  </div>
+
+  <h3>Objetivo</h3>
+  <p>
+    <strong>Vencer o set:</strong> primeiro a atingir 5 pontos com ≥2 de vantagem.
+    Quanto mais sets você vencer, mais desafiador fica o adversário.
+  </p>
+</div>
+
+<!-- ── MECHANICS ──────────────────────────────────────────────────────── -->
+<div id="mechanics" class="wiki-panel">
+  <h2>⚙️ Sistema de Resolução (5-Tiers)</h2>
+  <p>
+    O coração de ASCENSION é o <strong>gap-based resolution system</strong>.
+    Toda defesa é avaliada pelo gap entre poder de defesa e ataque.
+  </p>
+
+  <h3>Os 5 Tiers (do pior ao melhor)</h3>
+
+  <div class="tier-box" style="border-left-color: #D85A30;">
+    <strong>💥 Ataque Dominante</strong> (Gap ≤ -7)<br>
+    <strong>Sucesso:</strong> 0% | <strong>Bônus Ataque:</strong> -2<br>
+    O atacante é muito mais forte. Defesa praticamente impossível. Ponto quase garantido ao adversário.
+  </div>
+
+  <div class="tier-box" style="border-left-color: #FF9500;">
+    <strong>⚡ Vantagem Ofensiva</strong> (Gap -6 a -4)<br>
+    <strong>Sucesso:</strong> 25% | <strong>Bônus Ataque:</strong> -1<br>
+    Atacante está na vantagem. Você tem uma chance pequena de defender. Se conseguir, próximo ataque fica mais fraco.
+  </div>
+
+  <div class="tier-box" style="border-left-color: #1B9EBF;">
+    <strong>⚖️ Equilíbrio</strong> (Gap -3 a +3)<br>
+    <strong>Sucesso:</strong> 95% | <strong>Bônus Ataque:</strong> 0<br>
+    Poderes similares. Defesa provavelmente funciona. O rally continua.
+  </div>
+
+  <div class="tier-box" style="border-left-color: #3C3489;">
+    <strong>🛡️ Vantagem Defensiva</strong> (Gap +4 a +6)<br>
+    <strong>Sucesso:</strong> 100% | <strong>Bônus Ataque:</strong> +2<br>
+    Você está na vantagem. Defesa garantida. Seu próximo ataque ganha +2 de poder.
+  </div>
+
+  <div class="tier-box" style="border-left-color: #27500A;">
+    <strong>⭐ Defesa Dominante</strong> (Gap ≥ +7)<br>
+    <strong>Sucesso:</strong> 100% | <strong>Bônus Ataque:</strong> +4<br>
+    Você domina. Defesa perfeita. Próximo ataque é muito forte. Oportunidade de point.
+  </div>
+
+  <h3>Como o Bônus de Ataque Funciona</h3>
+  <p>
+    Depois de uma defesa bem-sucedida, você entra na fase de levantamento e depois ataque.
+    <strong>Seu próximo ataque começa com o bônus do tier anterior.</strong>
+  </p>
+  <p>
+    Exemplo:
+  </p>
+  <ul style="margin-left: 20px; margin-bottom: 12px;">
+    <li>IA ataca com poder 5</li>
+    <li>Você defende com poder 12 (gap = +7 → Defesa Dominante, +4 bônus)</li>
+    <li>Você ataca com uma carta de poder 6 + bônus 4 = <strong>10 total</strong></li>
+    <li>IA defende com poder 8 (gap = -2 → Vantagem Ofensiva, 25% sucesso)</li>
+  </ul>
+
+  <h3>Fase de Bloqueio</h3>
+  <p>
+    Se seu ataque passar pela defesa da IA, ela tenta bloquear. O bloqueio tem 4 possíveis resultados:
+  </p>
+  <table>
+    <tr><th>Roll</th><th>Probabilidade</th><th>Resultado</th></tr>
+    <tr><td>&lt; 0.20</td><td>20%</td><td>Você marca ponto direto</td></tr>
+    <tr><td>0.20–0.40</td><td>20%</td><td>Bloqueio sai fora — IA marca ponto</td></tr>
+    <tr><td>0.40–0.70</td><td>30%</td><td>Bloqueio enfraquece o ataque — vai para defesa novamente</td></tr>
+    <tr><td>&gt; 0.70</td><td>30%</td><td>Bloqueio toca e IA se recupera — rally continua</td></tr>
+  </table>
+
+  <h3>Dica do Treinador (Coach Cards)</h3>
+  <p>
+    <strong>Tipo especial:</strong> 'coach' (Dica do Treinador)<br>
+    <strong>Efeito:</strong> Executar uma ação bônus (ex: +2 energia, desenhar 1 carta)<br>
+    <strong>Disponibilidade:</strong> defesa + ataque (não saque, não bloqueio)<br>
+    <strong>Limite:</strong> máximo 1 por ponto<br>
+    <strong>Comportamento:</strong> ao jogar, a mão é recarregada na mesma fase (não avança)
+  </p>
+
+  <h3>Combos</h3>
+  <p>
+    Toda vez que você faz 3 toques (defesa → levantamento → ataque), um <strong>combo</strong> é formado.
+    Combos dão <strong>+2 poder</strong> ao próximo ataque como recompensa por bom play.
+  </p>
+
+  <h3>Energia</h3>
+  <p>
+    Cada carta custa energia (1–3 normalmente). Você começa com 10 energia por ponto.
+    Se a energia chegar a 0 durante um rally, um <strong>freeball</strong> é acionado — bola lenta, fácil de defender.
+  </p>
+
+  <h3>Energia + Bônus</h3>
+  <p>
+    Alguns cards têm bônus que aumentam seu poder além do número base:
+  </p>
+  <ul style="margin-left: 20px; margin-bottom: 12px;">
+    <li><strong>atkBoost3</strong> — próximo ataque +3 poder</li>
+    <li><strong>atkBoost6</strong> — próximo ataque +6 poder</li>
+    <li><strong>aiDefMinus2</strong> — defesa IA -2 poder no próximo ataque</li>
+    <li><strong>energy2</strong> — recupera 2 energia (útil se você está baixo)</li>
+    <li><strong>draw1</strong> — desenha 1 carta extra (não pode ser coach)</li>
+  </ul>
+</div>
+
+<!-- ── CARDS ────────────────────────────────────────────────────────── -->
+<div id="cards" class="wiki-panel">
+  <h2>🎴 Banco de Dados de Cartas</h2>
+  <p>ASCENSION tem 22 cartas implementadas e um catálogo de design de 120 cartas planejadas.</p>
+
+  <div class="wiki-filters">
+    <input type="search" id="wiki-search" placeholder="🔍 Buscar carta por nome...">
+  </div>
+
+  <div class="wiki-filters">
+    <button class="wiki-filter-btn on" data-type="all">Todos os Tipos</button>
+    <button class="wiki-filter-btn" data-type="attack">⚡ Ataque</button>
+    <button class="wiki-filter-btn" data-type="defense">🛡️ Defesa</button>
+    <button class="wiki-filter-btn" data-type="setting">🤲 Levant.</button>
+    <button class="wiki-filter-btn" data-type="block">🧱 Bloqueio</button>
+    <button class="wiki-filter-btn" data-type="service">🏐 Saque</button>
+    <button class="wiki-filter-btn" data-type="coach">📋 Treinador</button>
+  </div>
+
+  <div id="wiki-card-grid"></div>
+
+  <h3>Legenda</h3>
+  <p>
+    <strong>Poder:</strong> valor base que entra no cálculo de gap<br>
+    <strong>Nível:</strong> Básico (inicio) / Intermediário (mid) / Avançado (endgame)<br>
+    <strong>Bônus:</strong> efeito especial quando a carta é jogada
+  </p>
+</div>
+
+<!-- ── ARCHETYPES ────────────────────────────────────────────────────── -->
+<div id="archetypes" class="wiki-panel">
+  <h2>🎯 Arquétipos de Construção</h2>
+  <p>
+    O catálogo de 120 cartas é organizado em <strong>6 arquétipos</strong>. Cada um oferece uma estratégia diferente.
+  </p>
+
+  <div class="archetype-card">
+    <h4>💥 Potência</h4>
+    <p><strong>Foco:</strong> Ataque de alto poder e bloqueio defensivo.</p>
+    <p><strong>Estratégia:</strong> Ganhe rallies rapidamente com ataques poderosos. Défesa é reativa.</p>
+    <p><strong>Cartas fortes:</strong> Bombas de ataque, defesas de velocidade.</p>
+  </div>
+
+  <div class="archetype-card">
+    <h4>🎯 Técnica</h4>
+    <p><strong>Foco:</strong> Controle, precisão, bônus ao próximo toque.</p>
+    <p><strong>Estratégia:</strong> Constrói rallies longos com levantamentos perfeitos e ataques colocados.</p>
+    <p><strong>Cartas fortes:</strong> Levantadores de alta precisão, ataques controlados.</p>
+  </div>
+
+  <div class="archetype-card">
+    <h4>🛡️ Resistência</h4>
+    <p><strong>Foco:</strong> Defesa inabalável, recuperação de energia.</p>
+    <p><strong>Estratégia:</strong> Outlast o adversário. Defesa perfeitamente ajustada segue-se em ataque consistente.</p>
+    <p><strong>Cartas fortes:</strong> Defesas de alto power, recuperação de energia.</p>
+  </div>
+
+  <div class="archetype-card">
+    <h4>🧠 Leitura de Jogo</h4>
+    <p><strong>Foco:</strong> Antecipação, condicionais baseadas no estado da IA.</p>
+    <p><strong>Estratégia:</strong> Saiba onde a IA vai bater e posicione-se perfeitamente. Defesa 100% quando lê o ataque.</p>
+    <p><strong>Cartas fortes:</strong> Condicionais de defesa antecipada, reads perfeitas.</p>
+  </div>
+
+  <div class="archetype-card">
+    <h4>⚡ Pressão</h4>
+    <p><strong>Foco:</strong> Saques disruptivos, ataque rápido, forçar erros da IA.</p>
+    <p><strong>Estratégia:</strong> Acelere o jogo. Saques curtos, ataques rápidos. IA sem tempo de pensar.</p>
+    <p><strong>Cartas fortes:</strong> Saques curtos, ataques de velocidade, dicas do treinador.</p>
+  </div>
+
+  <div class="archetype-card">
+    <h4>🚫 Bloqueio</h4>
+    <p><strong>Foco:</strong> Bloqueios perfeitos, contraataques.</p>
+    <p><strong>Estratégia:</strong> Bloqueia tudo e contra com potência. Bloqueio é ofensa.</p>
+    <p><strong>Cartas fortes:</strong> Bloqueios de alta potência, contraataques imediatos.</p>
+  </div>
+
+  <p style="margin-top: 16px; font-size: 13px; color: var(--text-light);">
+    <strong>Nota:</strong> um deck não precisa ser 100% um arquétipo. Híbridos são poderosos — misture técnica + resistência, ou potência + pressão.
+  </p>
+</div>
+
+<!-- ── STATS ───────────────────────────────────────────────────────────── -->
+<div id="stats" class="wiki-panel">
+  <h2>📊 Estatísticas & Balance</h2>
+
+  <h3>Cartas Implementadas</h3>
+  <div class="stats-grid">
+    <div class="stat-box">
+      <div class="stat-number">22</div>
+      <div class="stat-label">Cartas Totais</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">6</div>
+      <div class="stat-label">Tipos</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">3</div>
+      <div class="stat-label">Níveis</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">42</div>
+      <div class="stat-label">Cartas em Deck</div>
+    </div>
+  </div>
+
+  <h3>Catálogo de Design (Roadmap)</h3>
+  <div class="stats-grid">
+    <div class="stat-box">
+      <div class="stat-number">120</div>
+      <div class="stat-label">Cartas Planejadas</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">30</div>
+      <div class="stat-label">Ataques</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">30</div>
+      <div class="stat-label">Defesas</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">22</div>
+      <div class="stat-label">Levantamentos</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">22</div>
+      <div class="stat-label">Bloqueios</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">16</div>
+      <div class="stat-label">Saques</div>
+    </div>
+  </div>
+
+  <h3>Distribuição por Nível (Planejado)</h3>
+  <table>
+    <tr><th>Nível</th><th>Ataque</th><th>Defesa</th><th>Levant.</th><th>Bloqueio</th><th>Saque</th><th>Total</th></tr>
+    <tr><td>🟢 Básico</td><td>10</td><td>10</td><td>7</td><td>7</td><td>5</td><td>39</td></tr>
+    <tr><td>🟡 Intermediário</td><td>12</td><td>12</td><td>9</td><td>9</td><td>6</td><td>48</td></tr>
+    <tr><td>🔴 Avançado</td><td>8</td><td>8</td><td>6</td><td>6</td><td>5</td><td>33</td></tr>
+    <tr><td colspan="6" style="background: linear-gradient(135deg, var(--sky) 0%, #1a4f7a 100%); color: #fff; font-weight: 700;"><strong>Total</strong></td><td style="background: linear-gradient(135deg, var(--sky) 0%, #1a4f7a 100%); color: #fff; font-weight: 700;"><strong>120</strong></td></tr>
+  </table>
+
+  <h3>Power Balance (Cartas Atuais)</h3>
+  <p>
+    A distribuição de poder é cuidadosamente balanceada para que nenhum tipo seja dominante:
+  </p>
+  <ul style="margin-left: 20px; margin-bottom: 12px;">
+    <li><strong>Ataques:</strong> 2–9 poder (média ~5)</li>
+    <li><strong>Defesas:</strong> 2–10 poder (média ~5)</li>
+    <li><strong>Levantamentos:</strong> bônus indiretos (atkBoost3/6) em vez de poder base</li>
+    <li><strong>Bloqueios:</strong> 3–6 poder (média ~4.5)</li>
+    <li><strong>Saques:</strong> 1–5 poder (média ~3)</li>
+  </ul>
+
+  <h3>Tier Balance (5-Tier System)</h3>
+  <table>
+    <tr><th>Tier</th><th>Gap</th><th>Sucesso</th><th>Frequência Esperada</th><th>Gameplay</th></tr>
+    <tr><td>Ataque Dominante</td><td>≤ -7</td><td>0%</td><td>~5% (raro)</td><td>Defesa praticamente impossível</td></tr>
+    <tr><td>Vantagem Ofensiva</td><td>-6 a -4</td><td>25%</td><td>~15% (ocasional)</td><td>Tensão — pode passar ou não</td></tr>
+    <tr><td>Equilíbrio</td><td>-3 a +3</td><td>95%</td><td>~60% (comum)</td><td>Rallies longos e competitivos</td></tr>
+    <tr><td>Vantagem Defensiva</td><td>+4 a +6</td><td>100%</td><td>~15% (ocasional)</td><td>Você está na vantagem</td></tr>
+    <tr><td>Defesa Dominante</td><td>≥ +7</td><td>100%</td><td>~5% (raro)</td><td>Defesa perfeita — contra poderoso</td></tr>
+  </table>
+
+  <h3>Ciclo de Vida do Jogo</h3>
+  <p>
+    <strong>Ponto normal:</strong> ~20–30 segundos (3–5 rallies)<br>
+    <strong>Set:</strong> ~5–8 minutos (5–7 pontos)<br>
+    <strong>Match:</strong> ~5–8 minutos (1 set MVP — será expandido para best-of-3)
+  </p>
+</div>
+
+<!-- ── GLOSSARY ───────────────────────────────────────────────────────── -->
+<div id="glossary" class="wiki-panel">
+  <h2>📖 Glossário</h2>
+
+  <div class="glossary-entry">
+    <dt>🎯 Ataque</dt>
+    <dd>Fase ofensiva onde você tenta marcar ponto. Você escolhe uma carta de ataque, calcula o poder total (base + bônus), e rola contra a defesa da IA.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>💥 Ataque Dominante</dt>
+    <dd>Tier de qualidade de defesa. Gap ≤ -7. Seu ataque é muito mais forte que a defesa IA — sucesso praticamente garantido (0% de falha).</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>⚡ Bônus de Ataque (Attack Bonus)</dt>
+    <dd>Aumento de poder adicionado ao próximo ataque. Vem de defesas de qualidade (ex: +2 de Vantagem Defensiva), combos (+2), ou cartas especiais.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>🧱 Bloqueio</dt>
+    <dd>Fase defensiva da IA. Após seu ataque passar pela defesa IA, ela tenta bloquear. 4 resultados possíveis: ponto direto, fora, enfraquecimento, ou continuação.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>📋 Dica do Treinador (Coach Card)</dt>
+    <dd>Tipo especial de carta que representa uma instrução tática do técnico. Limitado a 1 por ponto. Disponível em defesa e ataque (não saque/bloqueio). Ao jogar, a mão recarrega.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>⚖️ Combo</dt>
+    <dd>3 toques consecutivos (defesa → levantamento → ataque) geram um combo. Combos dão +2 poder ao próximo ataque como recompensa.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>🛡️ Defesa</dt>
+    <dd>Fase defensiva onde você tenta salvar o rally. Você tem 15 segundos. Escolha uma carta de defesa, e o resultado é determinado pelo gap.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>⭐ Defesa Dominante</dt>
+    <dd>Tier de qualidade de defesa. Gap ≥ +7. Sua defesa é muito mais forte que o ataque IA — defesa perfeita. Próximo ataque ganha +4.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>⚙️ Gap (Diferença de Poder)</dt>
+    <dd>Gap = Defense Power - Attack Power. Positivo = defensor mais forte. Negativo = atacante mais forte. Determina o tier de qualidade.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>⚡ Equilíbrio</dt>
+    <dd>Tier de qualidade de defesa. Gap -3 a +3. Poderes similares. 95% de sucesso. O tier mais comum — rallies longos e competitivos.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>🏐 Energia</dt>
+    <dd>Recurso limitado. Comece com 10 por ponto. Cada carta custa 1–3. Se chegar a 0 durante um rally, um freeball é acionado (bola lenta).</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>🎮 Freeball</dt>
+    <dd>Bola lenta que aparece quando você fica sem energia. Fácil de defender, mas você fica vulnerável. Oportunidade de rali rápido.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>🤲 Levantamento (Setting)</dt>
+    <dd>Fase central. Após defesa bem-sucedida, você levanta. Escolha uma carta de levantamento. Bônus diretos ao próximo ataque.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>🌟 Nível de Carta</dt>
+    <dd>Classificação de complexidade. Básico = simples, baixo poder. Intermediário = efeitos secundários. Avançado = alta potência/complexidade. Usado para progressão futura.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>🏐 Ponto</dt>
+    <dd>Unidade básica de jogo. Começa com um saque, termina quando alguém marca (ou freeball é acionado). Redefine energia, bônus e mão.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>🏐 Rally</dt>
+    <dd>Uma troca de toques (saque → defesa → levantamento → ataque → bloqueio). Pode resultar em ponto ou rallies adicionais se bloqueio for tocado.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>🏐 Set (Jogo)</dt>
+    <dd>Primeiro a atingir 5 pontos com ≥2 de vantagem. Encerra quando um jogador ganha.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>🏐 Saque (Service)</dt>
+    <dd>Primeira fase. Você escolhe uma carta de saque para iniciar o rally. Saques têm baixo poder (1–5) mas definem o tom.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>🛡️ Vantagem Defensiva</dt>
+    <dd>Tier de qualidade de defesa. Gap +4 a +6. Defensor mais forte. 100% de sucesso. Próximo ataque ganha +2.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>⚡ Vantagem Ofensiva</dt>
+    <dd>Tier de qualidade de defesa. Gap -6 a -4. Atacante mais forte. 25% de sucesso na defesa. Tensão — pode passar ou falhar.</dd>
+  </div>
+
+  <div class="glossary-entry">
+    <dt>📚 Tipo de Carta</dt>
+    <dd>Categoria de técnica. 6 tipos: Ataque, Defesa, Levantamento, Bloqueio, Saque, Dica do Treinador. Cada um tem regras de quando pode ser jogado.</dd>
+  </div>
+</div>
+
+</body>
+<script src="data.js"></script>
+<script>
+// ── Locked cards (same as in catalog.html) ───────────────────────────────
+const LOCKED_CARDS = [
+  {name:'Ataque Frontal',type:'attack',level:'basico',desc:'Cortada direta de frente para o centro.'},
+  {name:'Bola Alta',type:'attack',level:'basico',desc:'Ataque lento e alto que força o adversário.'},
+  {name:'Rolinho',type:'attack',level:'basico',desc:'Toque suave com rotação que passa pelos dedos.'},
+  {name:'Paralelinha',type:'attack',level:'basico',desc:'Ataque paralelo rente à linha lateral.'},
+  {name:'Bola Mole',type:'attack',level:'basico',desc:'Dink controlado que cai logo atrás da rede.'},
+  {name:'Cutback',type:'attack',level:'basico',desc:'Cortada que muda de direção no último momento.'},
+  {name:'Ataque Aberto',type:'attack',level:'basico',desc:'Cortada larga pelo lado oposto.'},
+  {name:'Ataque de Segunda',type:'attack',level:'basico',desc:'Atacada diretamente do segundo toque.'},
+  {name:'Pipe',type:'attack',level:'intermediario',desc:'Ataque do ponto médio de fundo.'},
+  {name:'Bola Quicada',type:'attack',level:'intermediario',desc:'Ataque com forte rotação que quica.'},
+  {name:'Cortada de Potência',type:'attack',level:'intermediario',desc:'Cortada máxima com todo o peso.'},
+  {name:'Tabela no Bloqueio',type:'attack',level:'intermediario',desc:'Ataque intencional no braço do bloqueador.'},
+  {name:'Boicote na Linha',type:'attack',level:'intermediario',desc:'Simula ir ao centro mas desvia.'},
+  {name:'Contra-Ataque',type:'attack',level:'intermediario',desc:'Exploração rápida após boa defesa.'},
+  {name:'Bola Espalmada',type:'attack',level:'intermediario',desc:'Ataque de palma aberta com controle.'},
+  {name:'Cortada Rápida',type:'attack',level:'intermediario',desc:'Timing perfeito no pico do salto.'},
+  {name:'Ataque de Precisão',type:'attack',level:'intermediario',desc:'Atacada calculada para centímetros finais.'},
+  {name:'Bola de Mão',type:'attack',level:'intermediario',desc:'Toque rápido logo atrás da rede.'},
+  {name:'Bomba',type:'attack',level:'avancado',desc:'Cortada com salto máximo. Imparável.'},
+  {name:'Cortada de Velocidade',type:'attack',level:'avancado',desc:'Explosão em velocidade máxima.'},
+  {name:'Ataque Sobreposto',type:'attack',level:'avancado',desc:'Coordenação perfeita com o parceiro.'},
+  {name:'Bola Curta',type:'attack',level:'avancado',desc:'Ataque preciso atrás do bloqueador.'},
+  {name:'Boicote Cruzado',type:'attack',level:'avancado',desc:'Muda de diagonal no ar.'},
+  {name:'Especialista em Bloqueio',type:'attack',level:'avancado',desc:'Ataca onde bloqueador não está.'},
+  {name:'Ataque Perfeito',type:'attack',level:'avancado',desc:'Posição, timing e direção em harmonia.'},
+  {name:'Recepção Base',type:'defense',level:'basico',desc:'Posição defensiva equilibrada.'},
+  {name:'Defesa Lateral',type:'defense',level:'basico',desc:'Mergulho lateral para bolas no canto.'},
+  {name:'Manchete Baixa',type:'defense',level:'basico',desc:'Plataforma próxima ao chão.'},
+  {name:'Cobertura de Bloqueio',type:'defense',level:'basico',desc:'Posicionamento para bolas que desviam.'},
+  {name:'Defesa em Pé',type:'defense',level:'basico',desc:'Defesa simples sem mergulho.'},
+  {name:'Salto de Defesa',type:'defense',level:'basico',desc:'Pequeno salto para interceptar.'},
+  {name:'Bola Salva',type:'defense',level:'basico',desc:'Defesa de último segundo.'},
+  {name:'Defesa Antecipada',type:'defense',level:'intermediario',desc:'Você leu o levantamento adversário.'},
+  {name:'Defesa de Velocidade',type:'defense',level:'intermediario',desc:'Reação rápida para ataques rápidos.'},
+  {name:'Cobertura Total',type:'defense',level:'intermediario',desc:'Defesa que cobre todas as zonas.'},
+  {name:'Manchete de Corrida',type:'defense',level:'intermediario',desc:'Arrancada lateral para alcance.'},
+  {name:'Rotação Defensiva',type:'defense',level:'intermediario',desc:'Troca coordenada de posição.'},
+  {name:'Defesa Lateral Profunda',type:'defense',level:'intermediario',desc:'Defesa com profundidade de campo.'},
+  {name:'Bloqueio Parcial',type:'defense',level:'intermediario',desc:'Toca na bola e ainda defende.'},
+  {name:'Defesa de Reação',type:'defense',level:'intermediario',desc:'Reflexo puro.'},
+  {name:'Recepção Flutuante',type:'defense',level:'intermediario',desc:'Manchete suave e perfeita.'},
+  {name:'Cobertura de Bola Curta',type:'defense',level:'intermediario',desc:'Antecipação de bolas curtas.'},
+  {name:'Defesa Acrobática',type:'defense',level:'avancado',desc:'Mergulho com giro lateral.'},
+  {name:'Manchete com Giro',type:'defense',level:'avancado',desc:'Rotação do corpo no ar.'},
+  {name:'Defesa Total',type:'defense',level:'avancado',desc:'Leitura + posicionamento perfeito.'},
+  {name:'Defesa Sobreposta',type:'defense',level:'avancado',desc:'Cobertura dupla com parceiro.'},
+  {name:'Defesa de Especialista',type:'defense',level:'avancado',desc:'Técnica refinada por anos.'},
+  {name:'Cobertura Impossível',type:'defense',level:'avancado',desc:'A bola voa além do alcance humano.'},
+  {name:'Defesa Perfeita',type:'defense',level:'avancado',desc:'Posição, leitura, timing, execução.'},
+  {name:'Levantamento de Frente',type:'setting',level:'basico',desc:'Toque direto de frente.'},
+  {name:'Levantamento Cruzado',type:'setting',level:'basico',desc:'Toque que envia para o lado oposto.'},
+  {name:'Toque de Segundo',type:'setting',level:'basico',desc:'Segundo toque controlado.'},
+  {name:'Levantamento em Pé',type:'setting',level:'basico',desc:'Levantamento sem salto.'},
+  {name:'Devolução de Defesa',type:'setting',level:'basico',desc:'Conversão direta da manchete.'},
+  {name:'Levantamento Lateral',type:'setting',level:'basico',desc:'Toque lateral para abrir ângulo.'},
+  {name:'Levantamento Rápido',type:'setting',level:'intermediario',desc:'Bola antes do bloqueador reagir.'},
+  {name:'Levantamento de Mão Cheia',type:'setting',level:'intermediario',desc:'Toque com controle perfeito.'},
+  {name:'Levantamento de Plataforma',type:'setting',level:'intermediario',desc:'Levantamento com manchete.'},
+  {name:'Levantamento Surpresa',type:'setting',level:'intermediario',desc:'Decisão de última hora.'},
+  {name:'Levantamento de Corrida',type:'setting',level:'intermediario',desc:'Movimento em sprint ao contato.'},
+  {name:'Bola de Segundo Tempo',type:'setting',level:'intermediario',desc:'Levantamento tardio e inesperado.'},
+  {name:'Levantamento Baixo',type:'setting',level:'intermediario',desc:'Toque tenso próximo à rede.'},
+  {name:'Levantamento de Costas',type:'setting',level:'intermediario',desc:'Levantamento para trás em movimento.'},
+  {name:'Levantamento Enganador',type:'setting',level:'avancado',desc:'Movimento falso seguido de toque.'},
+  {name:'Superlevantamento',type:'setting',level:'avancado',desc:'Toque de perfeição técnica.'},
+  {name:'Bola de Ouro',type:'setting',level:'avancado',desc:'Levantamento memorável e perfeito.'},
+  {name:'Levantamento de Alta Velocidade',type:'setting',level:'avancado',desc:'Segundo toque em fração de segundo.'},
+  {name:'Levantamento Decisivo',type:'setting',level:'avancado',desc:'Quando mais importa, perfeito.'},
+  {name:'Bloqueio Lateral',type:'block',level:'basico',desc:'Salto lateral para cobrir ponta.'},
+  {name:'Bloqueio de Salto',type:'block',level:'basico',desc:'Timing perfeito de salto.'},
+  {name:'Bloqueio de Reação',type:'block',level:'basico',desc:'Puro reflexo.'},
+  {name:'Bloqueio Fechado',type:'block',level:'basico',desc:'Braços totalmente fechados.'},
+  {name:'Bloqueio Aberto',type:'block',level:'basico',desc:'Mãos abertas direcionando a bola.'},
+  {name:'Bloqueio de Linha',type:'block',level:'intermediario',desc:'Fechando a linha lateral.'},
+  {name:'Bloqueio em Diagonal',type:'block',level:'intermediario',desc:'Fechando a diagonal.'},
+  {name:'Bloqueio de Banda',type:'block',level:'intermediario',desc:'Bola desviada para fora.'},
+  {name:'Leitura do Levantador',type:'block',level:'intermediario',desc:'Você sabe para onde vai.'},
+  {name:'Bloqueio de Velocidade',type:'block',level:'intermediario',desc:'Salto instantâneo.'},
+  {name:'Bloqueio de Cobertura',type:'block',level:'intermediario',desc:'Você cobre a bola mesmo passando.'},
+  {name:'Bloqueio Duplo',type:'block',level:'intermediario',desc:'Coordenação dos dois jogadores.'},
+  {name:'Bloqueio Surpresa',type:'block',level:'intermediario',desc:'Você sobe quando não esperavam.'},
+  {name:'Bloqueio Perfeito',type:'block',level:'avancado',desc:'Posição, timing, alcance perfeitos.'},
+  {name:'Paredão Perfeito',type:'block',level:'avancado',desc:'O bloqueio que todos lembram.'},
+  {name:'Bloqueio Definitivo',type:'block',level:'avancado',desc:'Nenhum ataque passa.'},
+  {name:'Bloqueio de Especialista',type:'block',level:'avancado',desc:'Décadas em um salto.'},
+  {name:'Bloqueio de Alta Performance',type:'block',level:'avancado',desc:'Potência máxima, sem abertura.'},
+  {name:'Bloqueio Total',type:'block',level:'avancado',desc:'Uma parede de verdade.'},
+  {name:'Saque Controlado',type:'service',level:'basico',desc:'Técnica básica com foco.'},
+  {name:'Saque Lateral',type:'service',level:'basico',desc:'Movimento lateral criando trajetória.'},
+  {name:'Saque de Iniciante',type:'service',level:'basico',desc:'Seguro, sem potência.'},
+  {name:'Saque de Salto',type:'service',level:'intermediario',desc:'Corrida, salto e saque acima.'},
+  {name:'Saque de Pressão',type:'service',level:'intermediario',desc:'Direcionado às fraquezas IA.'},
+  {name:'Saque Curto',type:'service',level:'intermediario',desc:'Bola cai logo após a rede.'},
+  {name:'Saque em Z',type:'service',level:'intermediario',desc:'Trajetória em Z desorientadora.'},
+  {name:'Saque de Linha',type:'service',level:'intermediario',desc:'Bola rente à linha lateral.'},
+  {name:'Saque Overhand Potente',type:'service',level:'avancado',desc:'Força máxima, mal é vista.'},
+  {name:'Saque de Salto com Giro',type:'service',level:'avancado',desc:'Salto e rotação combinados.'},
+  {name:'Saque Ace',type:'service',level:'avancado',desc:'Saque direto para ponto.'},
+  {name:'Saque de Alta Performance',type:'service',level:'avancado',desc:'Máximo poder sem abrir mão.'},
+  {name:'Saque Definitivo',type:'service',level:'avancado',desc:'Praticado 10.000 vezes.'},
+];
+
+const TYPE_ICON = {attack:'⚡',defense:'🛡️',setting:'🤲',block:'🧱',service:'🏐',coach:'📋'};
+const LVL_LABEL = {basico:'Básico',intermediario:'Inter.',avancado:'Avançado'};
+const BONUS_LABEL = {energy2:'⚡+2',atkBoost3:'ATK+3',atkBoost6:'ATK+6',aiDefMinus2:'DEF−2',draw1:'+1 Carta'};
+
+// ── Build card list ───────────────────────────────────────────────────
+const ALL_CARDS = CARDS_DB.map(c => ({...c, unlocked: true}));
+let selectedType = 'all';
+let searchTerm = '';
+
+// ── Tab & Filter Logic ─────────────────────────────────────────────────
+document.querySelectorAll('.wiki-tab').forEach(btn => {
+  btn.addEventListener('click', e => {
+    document.querySelectorAll('.wiki-tab').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('.wiki-panel').forEach(p => p.classList.remove('on'));
+    e.target.classList.add('on');
+    const tab = e.target.dataset.tab;
+    document.getElementById(tab).classList.add('on');
+    if (tab === 'cards') renderCardGrid();
+  });
+});
+
+document.querySelectorAll('.wiki-filter-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    document.querySelectorAll('.wiki-filter-btn').forEach(b => b.classList.remove('on'));
+    e.target.classList.add('on');
+    selectedType = e.target.dataset.type;
+    renderCardGrid();
+  });
+});
+
+document.getElementById('wiki-search').addEventListener('input', e => {
+  searchTerm = e.target.value.toLowerCase();
+  renderCardGrid();
+});
+
+function renderCardGrid() {
+  const filtered = ALL_CARDS.filter(c => {
+    if (selectedType !== 'all' && c.type !== selectedType) return false;
+    if (searchTerm && !c.name.toLowerCase().includes(searchTerm)) return false;
+    return true;
+  });
+
+  const grid = document.getElementById('wiki-card-grid');
+  grid.innerHTML = filtered.map(c => {
+    const bonus = c.bonus && BONUS_LABEL[c.bonus] ? `<span class="wc-badge">${BONUS_LABEL[c.bonus]}</span>` : '';
+    const power = c.power !== undefined ? `<div class="wc-power">${c.power}</div>` : '';
+    return `<div class="wc type-${c.type}">
+      <div class="wc-name">${c.name}</div>
+      ${power}
+      <div class="wc-desc">${c.desc || ''}</div>
+      <div class="wc-footer">
+        <span class="wc-badge">${LVL_LABEL[c.level]}</span>
+        ${bonus}
+      </div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
