@@ -15,8 +15,8 @@ function newGame(gameMode = 'ai', isHost = false, campaignTeam = null) {
     isHost,
     campaignTeam,   // id string ('meteoros'|'muralha'|'fortaleza') or null
 
-    // Score
-    pPts: 0, aPts: 0, pSets: 0, aSets: 0,
+    // Score — campaign starts 1-0 (player won the first set narratively)
+    pPts: 0, aPts: 0, pSets: campaignTeam ? 1 : 0, aSets: 0,
 
     // Resources
     energy: 10, maxEnergy: 10,
@@ -108,7 +108,7 @@ function startPoint() {
   } else {
     log(G.gameMode === 'multiplayer' ? '— Novo ponto. Saque do Oponente —' : '— Novo ponto. Saque da IA —');
     G.locked = true;
-    if (G.gameMode === 'ai') setTimeout(() => aiTurn(), 1000);
+    if (G.gameMode !== 'multiplayer') setTimeout(() => aiTurn(), 1000);
   }
   render();
 }

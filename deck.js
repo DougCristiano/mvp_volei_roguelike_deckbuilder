@@ -6,9 +6,8 @@ function buildDeck() {
   let pool = [];
   const types = ['service', 'defense', 'setting', 'attack', 'block'];
 
-  // Minimalista: base 3 srv + 3 def + 2 set + 3 atk + 3 blk = 14 cartas
-  // Campaign teams shift +2 to their specialty (no coach in starting deck).
-  const copies = { service: 3, defense: 3, setting: 2, attack: 3, block: 3 };
+  // Base from BASE_DECK_COPIES (defined in campaign.js). Campaign teams shift +2 to their specialty.
+  const copies = { ...BASE_DECK_COPIES };
   if (G.campaignTeam && typeof CAMPAIGN_TEAMS !== 'undefined') {
     const bias = CAMPAIGN_TEAMS[G.campaignTeam]?.deckBias;
     if (bias) Object.assign(copies, bias);

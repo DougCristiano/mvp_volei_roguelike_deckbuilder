@@ -161,6 +161,24 @@ body{font-family:system-ui,sans-serif;background:var(--sky);min-height:100vh;col
   100%{opacity:1;transform:scale(1);}
 }
 
+/* ── Rewards Overlay ──────────────────────────────────────────── */
+#rewards-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:101;backdrop-filter:blur(4px);}
+#rewards-overlay.show{display:flex;}
+#rewards-box{background:linear-gradient(135deg,var(--card-bg) 0%,#FFFEF8 100%);border-radius:16px;padding:32px;max-width:480px;width:90%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.3);animation:overlaySlide 0.4s cubic-bezier(0.34,1.56,0.64,1);}
+#rewards-title{font-size:32px;font-weight:900;margin-bottom:8px;background:linear-gradient(135deg,#FFD700 0%,var(--energy-gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#rewards-subtitle{font-size:14px;color:var(--text-mid);margin-bottom:24px;line-height:1.6;font-weight:500;}
+#rewards-cards{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;}
+.reward-card{width:140px;background:linear-gradient(135deg,var(--card-bg) 0%,#FFFEF8 100%);border:3px solid var(--sand-border);border-radius:12px;padding:12px;cursor:pointer;transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);user-select:none;box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+.reward-card:hover{transform:translateY(-8px) scale(1.05);border-color:var(--sky);box-shadow:0 12px 24px rgba(90,159,212,0.3),0 0 20px rgba(90,159,212,0.2);animation:cardGlow 0.6s ease-in-out infinite;}
+.reward-card-rarity{font-size:10px;font-weight:800;letter-spacing:0.12em;padding:4px 8px;border-radius:4px;margin-bottom:8px;text-transform:uppercase;display:inline-block;}
+.rarity-basico{background:#E0E0E0;color:#333;}
+.rarity-intermediario{background:linear-gradient(135deg,#87CEEB 0%,#4A90E2 100%);color:#fff;}
+.rarity-avancado{background:linear-gradient(135deg,#FFD700 0%,#FFA500 100%);color:#333;}
+.reward-card-type{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;padding:4px 6px;border-radius:4px;display:inline-block;box-shadow:0 2px 6px rgba(0,0,0,0.15);}
+.reward-card-name{font-size:12px;font-weight:700;color:var(--text-dark);margin-bottom:6px;line-height:1.3;}
+.reward-card-power{font-family:'Arial Black',monospace;font-size:24px;font-weight:900;color:var(--text-dark);text-shadow:0 2px 4px rgba(0,0,0,0.1);margin:2px 0;}
+.reward-card-desc{font-size:10px;color:var(--text-light);line-height:1.4;margin-top:4px;font-style:italic;opacity:0.9;}
+
 /* ── Dashboard Layout ─────────────────────────────────────── */
 .player-icon{display:none;}
 #topbar,#phase-bar,#energy-bar{display:none;}

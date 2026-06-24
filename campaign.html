@@ -321,14 +321,16 @@ function deckLabel(team) {
     setting: 'Levant.', service: 'Saque', coach: 'Treinador'
   };
 
+  // Use BASE_DECK_COPIES from campaign.js (single source of truth)
   return Object.entries({
-    attack: 7, defense: 7, setting: 7, block: 7, service: 7, coach: 7,
+    ...BASE_DECK_COPIES,
     ...bias,
   })
     .filter(([, n]) => n > 0)
     .sort((a, b) => b[1] - a[1])
     .map(([t, n]) => {
-      const featured = bias[t] && bias[t] > 7;
+      const baseVal = BASE_DECK_COPIES[t] || 0;
+      const featured = bias[t] && bias[t] > baseVal;
       return `<span class="dp-chip ${featured ? 'featured' : ''}">${n}× ${typeNames[t] || t}</span>`;
     })
     .join('');

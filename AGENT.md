@@ -747,6 +747,24 @@ Toda mensagem embute `data.energy = G.energy` para sincronizar energia do remete
 - `input.js:playCard()` (attack) — passivo Os Meteoros: `meteorosBonus = campaignTeam === 'meteoros' ? 2 : 0` somado ao total
 - `main.js` — detecta `localStorage.ascension_campaign_team` no load; se presente, limpa e chama `newGame('campaign', false, teamId)` diretamente
 
+#### Sistema de Rewards (Campanha)
+- Após vitória em uma partida em modo campanha, tela com 3 cartas aleatórias aparece
+- Jogador escolhe 1 carta para adicionar ao deck
+- Próxima partida começa com deck expandido
+- **Mecânica de raridade**:
+  - Básico (Comum): 60% chance de ser selecionado
+  - Intermediário (Raro): 30% chance
+  - Avançado (Lendário): 10% chance
+  - Cartas já no deck são excluídas de seleção (sem duplicatas)
+- **Arquivos envolvidos**:
+  - `campaign.js` — `BASE_DECK_COPIES` (constante única para tamanho do deck); `selectRewardCards(count)` (seleção probabilística); `addCardToReward(cardId)` (adiciona ao deck)
+  - `deck.js` — usa `BASE_DECK_COPIES` como base (totalizando 14 cartas) + deckBias
+  - `campaign.html` — usa `BASE_DECK_COPIES` para preview (sem hardcoding)
+  - `render.js` — `showRewards(cards)` renderiza overlay com 3 cards interativos
+  - `index.html` — `#rewards-overlay` HTML element
+  - `style.css` — `.reward-card` + raridade colors (Comum/Raro/Lendário)
+  - `combat.js:checkSet()` — detecta vitória em campanha: `if (G.gameMode === 'campaign' && G.campaignTeam) showRewards(selectRewardCards(3))` ao invés de `showEnd(true)`
+
 ### [2026-06-23] Test infrastructure & CI gate
 
 #### Adicionado

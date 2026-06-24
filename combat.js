@@ -36,7 +36,7 @@ function passBall(forced, isServe = false) {
   G.possession = 'ai';
   G.locked = true;
   render();
-  if (G.gameMode === 'ai') setTimeout(() => aiTurn(), 900);
+  if (G.gameMode !== 'multiplayer') setTimeout(() => aiTurn(), 900);
 }
 
 // Block timer tick — called every 100ms by setInterval.
@@ -285,8 +285,10 @@ function _checkWinCondition(pPts, aPts, WIN = 5) {
 
 // Handles set/match scoring after a point ends.
 function checkSet(result, desc) {
-  const WIN         = 5;
-  const oppNameCap  = G.gameMode === 'multiplayer' ? 'Oponente' : 'IA';
+  const WIN_PTS  = 5;
+  // Campaign is best-of-3 (needs 2 sets); regular AI is best-of-1
+  const WIN_SETS = G.gameMode === 'campaign' ? 2 : 1;
+  const oppNameCap = G.gameMode === 'multiplayer' ? 'Oponente' : 'IA';
 
   if (G.gameMode === 'multiplayer' && !G.isNetworkReceiver) {
     const myRole  = G.isHost ? 'host'   : 'client';
@@ -303,17 +305,25 @@ function checkSet(result, desc) {
     });
   }
 
-  if (G.pPts >= WIN && G.pPts - G.aPts >= 2) {
+  if (G.pPts >= WIN_PTS && G.pPts - G.aPts >= 2) {
     G.pSets++; G.pPts = 0; G.aPts = 0;
-    if (G.pSets >= 1) { render(); showEnd(true); return; }
+    if (G.pSets >= WIN_SETS) {
+      render();
+      if (G.gameMode === 'campaign' && G.campaignTeam) {
+        showRewards(selectRewardCards(3));
+      } else {
+        showEnd(true);
+      }
+      return;
+    }
     log(`🏆 Set para você! ${G.pSets}×${G.aSets}`);
     render();
     showPointResult('win', '🏆 Set para você!', `Você venceu o set. Placar: ${G.pSets}×${G.aSets}`);
     return;
   }
-  if (G.aPts >= WIN && G.aPts - G.pPts >= 2) {
+  if (G.aPts >= WIN_PTS && G.aPts - G.pPts >= 2) {
     G.aSets++; G.pPts = 0; G.aPts = 0;
-    if (G.aSets >= 1) { render(); showEnd(false); return; }
+    if (G.aSets >= WIN_SETS) { render(); showEnd(false); return; }
     render();
     showPointResult('loss', `💔 Set para ${oppNameCap}`, `${oppNameCap} venceu o set. Placar: ${G.pSets}×${G.aSets}`);
     return;

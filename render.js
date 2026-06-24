@@ -193,6 +193,37 @@ function hidePointResult() {
   document.getElementById('hand-area').style.display    = 'flex';
 }
 
+// Show campaign rewards screen (3 cards to choose from)
+function showRewards(rewardCards) {
+  if (!rewardCards || rewardCards.length === 0) return;
+
+  const rewardsCards = document.getElementById('rewards-cards');
+  rewardsCards.innerHTML = '';
+
+  rewardCards.forEach(card => {
+    const rarityClass = `rarity-${card.level}`;
+    const rarityLabel = { 'basico': 'Comum', 'intermediario': 'Raro', 'avancado': 'Lendário' }[card.level] || 'Comum';
+
+    const cardEl = document.createElement('div');
+    cardEl.className = 'reward-card';
+    cardEl.innerHTML = `
+      <div class="reward-card-rarity ${rarityClass}">${rarityLabel}</div>
+      <div class="reward-card-type type-${card.type}">${card.type.toUpperCase()}</div>
+      <div class="reward-card-name">${card.name}</div>
+      <div class="reward-card-power">${card.power || '–'}</div>
+      <div class="reward-card-desc">${card.desc}</div>
+    `;
+    cardEl.onclick = () => {
+      addCardToReward(card.id);
+      document.getElementById('rewards-overlay').classList.remove('show');
+      startPoint();
+    };
+    rewardsCards.appendChild(cardEl);
+  });
+
+  document.getElementById('rewards-overlay').classList.add('show');
+}
+
 function showEnd(won) {
   const oppNameCap = G.gameMode === 'multiplayer' ? 'Oponente' : 'IA';
   document.getElementById('overlay-title').textContent = won ? '🏆 Vitória!' : '💔 Derrota';
