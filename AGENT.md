@@ -126,7 +126,16 @@ Tanto o jogador (`G.nextAttackBonus`) quanto a IA (`G.aiNextAtkBonus`) acumulam 
 - Trocar uma carta custa **1 de energia** (`rerollOption`)
 - Baralho se reconstrói automaticamente quando esgota (embaralha o descarte)
 - Cada carta tem: `id`, `name`, `type`, `level`, `cost`, `power`, `desc`, `phases[]`, `bonus?`
-- **Cartas Coach (Dica do Treinador)**: tipo `'coach'`, disponíveis em defense/setting/attack, **limite de 1 por ponto** (`G.coachUsed`)
+
+**Seleção de Cartas (Combo Coach)**
+- Cada ação de jogo permite **máximo 2 cartas**: 1 de fase (obrigatória) + 1 coach (opcional)
+- Não é possível jogar só coach ou 2 cartas da mesma fase
+- **Cartas Coach (Dica do Treinador)**: tipo `'coach'`, aparecem em **todas as fases** de jogo
+  - Sempre têm `phases:['coach']` (sem fase específica)
+  - Sempre têm `power:0` (modificador, não contribuem a poder de defesa/ataque)
+  - Limite de **1 por ponto** (`G.coachUsed = true`); desaparecem das mãos subsequentes do mesmo ponto
+  - Bônus aplicado **antes** da carta de fase (permite energy2 restaurar energia antes de debitar custo)
+  - Em janelas de bloqueio/defesa: coach conta como 1 da seleção multi-select, mas sem conflitar com carta de bloqueio/defesa
 
 #### Sistema de Energia
 - Jogador: 10 de energia máxima (`G.energy = 10`, `G.maxEnergy = 10`)
@@ -145,11 +154,11 @@ Tanto o jogador (`G.nextAttackBonus`) quanto a IA (`G.aiNextAtkBonus`) acumulam 
 #### Sistema de Bônus de Cartas
 | bonus | Efeito |
 |---|---|
-| `energy2` | +2 energia imediata |
+| `energy2` | +2 energia imediata (restaura antes de debitar carta de fase) |
 | `atkBoost3` | +3 no poder do próximo ataque |
 | `atkBoost6` | +6 no poder do próximo ataque |
 | `aiDefMinus2` | Adversário defende com -2 no próximo ataque |
-| `draw1` | +1 Uso livre (efeito placeholder — sistema não finalizado) |
+| `draw1` | Garante que coach aparece no próximo draw (sem efeito adicional) |
 
 #### Timers de Decisão
 - **Bloqueio**: 15 segundos (`G.blockTimerVal`, `tickBlockTimer`)
@@ -202,11 +211,17 @@ Tanto o jogador (`G.nextAttackBonus`) quanto a IA (`G.aiNextAtkBonus`) acumulam 
 | blk2 | Paredão | 2 | 6 | — |
 | blk3 | Leitura de Bloqueio | 1 | 4 | — |
 
-#### Coach / Dica do Treinador (2 cartas — disponíveis em defesa, levantamento, ataque; **limite 1 por ponto**)
+#### Coach / Dica do Treinador (2 cartas — disponíveis em **todas as fases**; **limite 1 por ponto**)
 | id | Nome | Nível | Custo | Poder | Bônus |
 |---|---|---|---|---|---|
 | cch1 | Foco do Técnico | basico | 0 | 0 | energy2 |
 | cch2 | Chamada do Técnico | intermediario | 1 | 0 | draw1 |
+
+**Observações:**
+- Coach sempre tem `phases: ['coach']` (não aparece em fases específicas, mas em TODAS)
+- Coach sempre tem `power: 0` — não afeta cálculo de poder de defesa ou ataque
+- Jogar coach requer **obrigatoriamente** uma carta de fase no mesmo turno
+- Bônus coach é aplicado **antes** da carta de fase (order of operations: coach → energy restoration → phase card cost → phase effects)
 
 ### IA (modo single-player)
 - **Seleciona cartas aleatoriamente** do pool filtrado por fase e custo disponível
@@ -816,5 +831,44 @@ Toda mensagem embute `data.energy = G.energy` para sincronizar energia do remete
 - `docs/ai.md` — nova seção "AI capabilities" listando bloqueio, defesa, saque; fluxo de `aiTurn()` atualizado
 - `docs/multiplayer.md` — adicionado `SETTING_PLAY` ao protocol table; `BLOCK_RESULT` com resultTypes documentados
 - `AGENT.md` — fluxo de rally completamente redesenhado com bloqueio da IA como etapa integral
+
+### [2026-06-24] Sistema de Combo Coach — 1 Fase + 1 Coach Opcional
+
+#### Adicionado
+- `G.nextPhaseExtraCard: boolean` — resetado a cada ponto; não altera número de cartas (sempre 3)
+- Lógica de seleção unificada em `input.js:selectCard()` — permite máximo 2 cartas (1 fase + 1 coach) em **todas** as janelas
+- `input.js:canPlay()` — coach verificação: requer carta de fase já selecionada + energia combinada ≤ G.energy
+- `deck.js:drawPhaseOptions()` — coach aparece em todas as fases (bloqueio, defesa, saque, levantamento, ataque) via `phases = [..., 'coach']`
+- `combat.js:resolveDefense()` — coach processado primeiro em loop separado (bônus antes de defesa)
+- `combat.js:resolveBlock()` — coach processado antes de bloqueio
+
+#### Alterado
+- `deck.js` — removido suporte a `drawCount = nextPhaseExtraCard ? 4 : 3`; sempre 3 cartas
+- `input.js:playCard()` — separação de fase card e coach card; coach bonus aplicado antes de phase card debit
+- `input.js:selectCard()` — deselecionar fase card limpa toda seleção (coach não pode ficar sozinho)
+- `input.js:rerollOption()` — coach incluído em `phases` para trocar (já estava, mantido)
+- `render.js:renderResolve()` — mostra poder de defesa sem coach (coach não contribui)
+- `render.js:renderActions()` — botões "Resolver" e "Bloquear" desabilitam se só coach está selecionado
+- `state.js:startNextCampaignMatch()` — fix: `savedDeck = [...G.deck, ...G.hand, ...G.discard]` (preserva todas as zonas entre partidas)
+- `tests/deck.test.js` — atualizado `makeG()` com `nextPhaseExtraCard: false`; testes de coach em todas as fases
+- `tests/data.test.js` — coach phase test esperando `['coach']` em vez de `['defense','setting','attack']`
+- `AGENT.md` — documentação completa do novo sistema na seção "Sistema de Cartas" e na seção de bônus
+
+#### Corrigido
+- **Bug crítico**: Coach aparecia sozinho no levantamento pós-reward campanha (defWindow/blockWindow tratados diferentemente) → agora coach aparece em todas as fases uniformemente
+- **Bug crítico**: Deck diminuía entre partidas campanha (startNextCampaignMatch salva só G.deck) → agora salva deck + hand + discard
+- **Bug de UX**: Jogador podia selecionar só coach sem fase card → agora bloqueado em selectCard() e canPlay()
+
+#### Detalhes Técnicos
+- **Ordem de operações ao jogar combo**:
+  1. Encontrar fase card e coach card em G.selected
+  2. Validar que existe fase card (obrigatório)
+  3. Aplicar coach bonus (energy2, atkBoost, etc.)
+  4. Debitar custo de coach
+  5. Debitar custo de fase card
+  6. Aplicar bônus de fase card
+  7. Descartar ambas
+- **drawPhaseOptions()**: coach aparece naturalmente como 1 das 3 opções (em vez de extra) porque filtra por `phases.includes(p)` e coach está em `phases`
+- **coachUsed flag**: setada ao jogar coach, resetada em startPoint(), impede coach de reaparecer no mesmo ponto
 
 *Documento gerado em 2026-06. Mantenha-o atualizado a cada tarefa relevante.*

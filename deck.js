@@ -45,7 +45,6 @@ function clearHand() {
 
 // Draws up to 3 cards valid for the current phase into the hand.
 // Coach cards are excluded only when G.coachUsed is true (already used this point).
-// If G.nextPhaseExtraCard is true, draws 4 cards instead of 3 (draw1 coach bonus).
 // Recycles discard pile if the deck runs out.
 function drawPhaseOptions() {
   clearHand();
@@ -58,9 +57,8 @@ function drawPhaseOptions() {
   // Coach excluded only when already used this point
   if (G.coachUsed) phases = phases.filter(p => p !== 'coach');
 
-  // draw1 coach bonus: extra option on next phase draw
-  const drawCount = G.nextPhaseExtraCard ? 4 : 3;
-  G.nextPhaseExtraCard = false;
+  const drawCount = 3;
+  G.nextPhaseExtraCard = false; // reset flag after use
 
   let found = [];
   for (let i = G.deck.length - 1; i >= 0 && found.length < drawCount; i--) {

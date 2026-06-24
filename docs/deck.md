@@ -28,10 +28,15 @@ This means types with fewer cards repeat; types with 6 cards (defense) cycle onl
 
 ## drawPhaseOptions() logic
 1. Clears the current hand to discard.
-2. Determines valid phases for the current context (defWindow/blockWindow/phase).
-3. Picks up to 3 matching cards from the END of the deck (stack, not random).
-4. If deck runs dry mid-draw, shuffles discard into deck and continues drawing.
-5. Coach cards are excluded during service, block phases, and when `G.coachUsed` is true (1 use per point).
+2. Determines valid phases for the current context:
+   - `blockWindow: true` → phases = `['block', 'coach']`
+   - `defWindow: true` → phases = `['defense', 'coach']`
+   - Otherwise → phases = `[G.phase, 'coach']`
+3. Coach excluded only if `G.coachUsed === true` (already used this point).
+4. Draws exactly 3 cards matching any phase in the filtered list.
+5. If deck runs dry mid-draw, shuffles discard into deck and continues drawing.
+
+**Result**: Coach appears in ALL phases (as long as not used this point) and takes 1 of the 3 slots.
 
 ## Invariants
 - `clearHand()` must be called before any phase transition to avoid card leaks.
