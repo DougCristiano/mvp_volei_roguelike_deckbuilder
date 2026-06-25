@@ -75,6 +75,10 @@ G = {
   // === Server ===
   nextServer: 'player'|'ai',  // Who serves next point
 
+  // === Ball animation (terminal outcome) ===
+  ballFx: {tx: number, ty: number} | null,  // Final position when rally ends (saque fora/rede, ponto no chão, etc)
+                                            // Set by combat.js before endPoint(); cleared by startPoint()
+
   // === Multiplayer sync ===
   isNetworkReceiver: boolean,   // Set when receiving POINT_END from host
   networkPointData: object|null,
@@ -91,7 +95,9 @@ G = {
 - `locked = false`, `pointDone = false`
 - `aiJustDefended = false`, `isDefendingServe = false`, `defenseQuality = null`
 - `coachUsed = false`, `freeBlockUsed = false`, `nextPhaseExtraCard = false`
+- `ballFx = null` (clear terminal ball position)
 - Clears both intervals; calls `hidePointResult()`
+- Calls `clearBallSeq()` (if render.js loaded) to reset choreography state
 - Calls `drawPhaseOptions()` if player serves, else `aiTurn()` after 1s
 
 ## startNextCampaignMatch() behavior

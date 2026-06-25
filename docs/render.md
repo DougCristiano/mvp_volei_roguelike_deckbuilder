@@ -11,9 +11,14 @@ Called after every G change via `render()`.
 | `renderHand()` | Renders card elements in `#hand-cards` |
 | `renderResolve()` | Shows/hides `#resolve-panel` with live atk/def power values |
 | `renderActions()` | Enables/disables all action buttons based on G state |
+| `renderOffensePreview()` | Shows `#offense-preview` badge with predicted attack power (base+atkBoost+nextAttackBonus+teamBonus) and accumulated `aiDefMinus`, during setting/attack phases |
 | `renderLog()` | Writes last 12 log entries to `#log-area` |
-| `moveBall()` | Moves `#ball` to reflect possession/defWindow |
+| `moveBall()` | Moves `#ball` based on G.ballFx (terminal outcome), _ballSeqActive (choreography), or game state |
+| `ballSeq(steps)` | Timed ball choreography: `steps=[{tx,ty,at}]` animates ball positions at intervals (at = ms from now) |
+| `ballTo(tx,ty)` | Immediate ball animation from current → target (used by ballSeq) |
+| `clearBallSeq()` | Clears all pending choreography timers and resets _ballSeqActive |
 | `logClass(msg)` | Returns CSS class string for a log entry by leading emoji |
+| `showDeckModal()` | Shows `#deck-overlay` listing full run deck (deck+hand+discard) grouped by type with counts |
 | `showPointResult(type, title, desc)` | Shows between-points result panel |
 | `hidePointResult()` | Hides result panel, restores hand and action areas |
 | `showRewards(rewardCards)` | Renders campaign reward overlay (3 card choices) |
@@ -28,11 +33,11 @@ Called after every G change via `render()`.
 | `G.pSets`, `G.aSets` | `render()` — `#sets-display` |
 | `G.gameMode` | Phase label, ball label, log text, showEnd |
 | `G.campaignMatchIndex` | `render()` — `#campaign-match-label` |
-| `G.blockWindow` | Phase label, renderResolve, renderActions |
-| `G.defWindow` | Phase label, renderResolve, renderActions |
+| `G.blockWindow` | Phase label, renderResolve, renderActions, moveBall |
+| `G.defWindow` | Phase label, renderResolve, renderActions, moveBall |
 | `G.isDefendingServe` | Phase label |
 | `G.possession` | Phase label, possession badge, moveBall |
-| `G.phase` | Phase label |
+| `G.phase` | Phase label, moveBall |
 | `G.pointDone` | Message area, renderResolve |
 | `G.locked` | Message area, btn-reroll disabled, btn-skip-block disabled |
 | `G.energy`, `G.maxEnergy` | Energy pips (header) |
@@ -43,6 +48,7 @@ Called after every G change via `render()`.
 | `G.hand` | `renderHand()` — card elements |
 | `G.selected` | `renderHand()` — `.selected` class; `renderResolve()` — live def power |
 | `G.aiAtkPow` | `renderResolve()` — `#atk-val` |
+| `G.ballFx` | `moveBall()` — terminal position (saque fora/rede, ponto no chão, etc) |
 
 ---
 
@@ -62,6 +68,7 @@ Called after every G change via `render()`.
 | `#freeball-notice` | Shown when energy = 0 |
 | `#deck-count` | Number on deck pile |
 | `#discard-count` | Number on discard pile |
+| `#offense-preview` | Predicted attack power / opponent def penalty badge (setting/attack phases) |
 | `#hand-cards` | Container for 3 card elements |
 | `#resolve-panel` | Defense/block window panel |
 | `#resolve-header` | Panel header text |
@@ -127,9 +134,50 @@ Called after every G change via `render()`.
 
 ---
 
+## moveBall() — ball positioning system (priority order)
+
+**Priority 1: Terminal outcome** — `G.ballFx` (set by combat.js before endPoint)
+- If set, ball animates to that position and stays (no phase-based updates)
+- Used for: saque fora (atrás da linha), saque na rede, ponto no chão, bloqueio fora
+
+**Priority 2: Choreography** — `_ballSeqActive` (timed sequence in flight)
+- If true, don't update position (let ballSeq handle it)
+- Used for: saque → receptor → levantador → corte sequences
+
+**Priority 3: Game state** — default phase/possession mapping
+- Maps to player/AI anchor positions based on `G.phase`:
+  - `service`: tx=3/97 (fora da linha), ty=33
+  - `defense`: tx=24/76 (receptor), ty=45
+  - `setting`: tx=34/66 (levantador), ty=110
+  - `attack`: tx=42/58 (corte), ty=95
+- `blockWindow`: tx=50 (rede), ty=125 (topo)
+- `defWindow`: tx=26 (usuário), ty=70 (meio-alto)
+
+All ball positions use `animateBall(ball,x0,y0,x1,y1)` which auto-detects net crossing and applies parabolic arc.
+
+---
+
+## Choreography (ballSeq) — timed rally sequences
+
+Used when game logic runs *synchronously* and doesn't render between phases (e.g., when player serves, IA's reception→set→attack happens inside `aiTurn()` without intermediate `render()` calls).
+
+```js
+ballSeq([
+  { tx: 76, ty: 45,  at: 0 },    // receptor IA chega agora
+  { tx: 66, ty: 110, at: 750 },  // levantador levanta em +750ms
+  { tx: 58, ty: 95,  at: 1500 }, // corte da IA em +1500ms
+]);
+// Bola ativa nessas posições; _ballSeqActive=true até after:1500ms+50
+// Enquanto ativo, moveBall() retorna cedo (não aplica lógica de fase)
+// Ao expirar, _ballSeqActive→false e fases normais retomam
+```
+
+---
+
 ## Invariants
 - `render()` is idempotent — safe to call repeatedly
 - `renderHand()` calls `canPlay()` from `input.js` — input.js must be loaded before render.js
 - `showPointResult()` hides `#action-area` and `#hand-area`
 - `hidePointResult()` restores them to `display: flex`
-- NEVER write to G from this file
+- `clearBallSeq()` always called in `startPoint()` to reset choreography state
+- NEVER write to G from this file (except `_ballX`, `_ballY`, `_ballTargetKey`, `_ballSeqActive`, `_ballSeqTimers` which are module-private)

@@ -110,34 +110,41 @@ function selectRewardCards(count = 3) {
   });
   if (availableCards.length === 0) return [];
 
-  // Weighted random selection
   const selected = [];
-  for (let i = 0; i < Math.min(count, availableCards.length); i++) {
+
+  // PRIORITY: cards the player unlocked with XP that aren't in the deck yet.
+  // These are guaranteed to fill reward slots first, so the player actually
+  // gets to add what they paid for instead of relying on low rarity odds.
+  const unlockedAvailable = availableCards.filter(c => c.locked && unlockedIds.has(c.id));
+  for (let i = unlockedAvailable.length - 1; i > 0; i--) { // shuffle
+    const j = Math.floor(Math.random() * (i + 1));
+    [unlockedAvailable[i], unlockedAvailable[j]] = [unlockedAvailable[j], unlockedAvailable[i]];
+  }
+  for (const c of unlockedAvailable) {
+    if (selected.length >= count) break;
+    selected.push(c);
+  }
+
+  // Fill remaining slots with weighted random selection from the rest
+  const rest = availableCards.filter(c => !selected.some(s => s.id === c.id));
+  while (selected.length < count && rest.length > 0) {
     let pick = null;
     let maxAttempts = 50;
 
     while (!pick && maxAttempts-- > 0) {
-      const candidate = availableCards[Math.floor(Math.random() * availableCards.length)];
+      const candidate = rest[Math.floor(Math.random() * rest.length)];
       if (!selected.some(c => c.id === candidate.id)) {
         const roll = Math.random() * 100;
         const weight = RARITY_WEIGHT[candidate.level] || 50;
-        if (roll < weight) {
-          pick = candidate;
-        }
+        if (roll < weight) pick = candidate;
       }
     }
 
-    // Fallback: pick any available card
-    if (!pick) {
-      for (let c of availableCards) {
-        if (!selected.some(x => x.id === c.id)) {
-          pick = c;
-          break;
-        }
-      }
-    }
+    // Fallback: pick any remaining card not yet selected
+    if (!pick) pick = rest.find(c => !selected.some(x => x.id === c.id)) || null;
 
     if (pick) selected.push(pick);
+    else break;
   }
 
   return selected;

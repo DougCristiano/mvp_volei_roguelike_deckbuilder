@@ -98,10 +98,21 @@ Select (new card):
 ## Phase routing after playCard
 | Phase | Action |
 |---|---|
-| `service` | Error check (5% + power×3%) → endPoint loss, or passBall(true, true) |
+| `service` | Error check (5% + power×3%) → on error: set G.ballFx (out/net) + endPoint loss; on success: ballSeq IA offense + passBall(true,true) |
 | `defense` | Advance to 'setting', drawPhaseOptions() |
 | `setting` | Advance to 'attack', drawPhaseOptions(), sendData SETTING_PLAY |
 | `attack` | Total = power + atkBoost + nextAttackBonus + meteorosBonus → resolvePlayerAttack() |
+
+**Service success choreography** (when player serves successfully):
+```js
+ballSeq([
+  { tx: 76, ty: 45,  at: 0 },    // IA receptor (right side, back)
+  { tx: 66, ty: 110, at: 750 },  // IA levantador (right side, net)
+  { tx: 58, ty: 95,  at: 1500 }, // IA corte (center-right, advancing)
+]);
+// Ball animates through IA's reception → set → attack sequence
+// blockWindow opens ~1.5s later; _ballSeqActive expires, moveBall resumes normal logic
+```
 
 **Attack bonus passive**: `getCampaignTeam()?.passives?.attackBonus ?? 0` — data-driven, no hardcoded team IDs
 

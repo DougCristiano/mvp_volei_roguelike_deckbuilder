@@ -135,11 +135,13 @@ function resolveBlock() {
   if (roll < 0.20) {
     log(`🧱 O bloqueio ${card.name} parou a bola na quadra do ${oppName}! Ponto direto!`);
     G.pPts++; G.nextServer = 'player';
+    G.ballFx = { tx: 74, ty: 33 };   // bola cai no chão da quadra da IA
     if (G.gameMode === 'multiplayer') sendData({ type: 'BLOCK_RESULT', cardId: card.id, resultType: 'POINT_DIRECT' });
     endPoint('win', 'Ponto de bloqueio!');
   } else if (roll < 0.40) {
     log(`❌ O bloqueio ${card.name} encostou na bola, mas ela desviou para fora! Ponto perdido.`);
     G.aPts++; G.nextServer = 'ai';
+    G.ballFx = { tx: 4, ty: 33 };    // bola desvia para fora, atrás da linha do usuário
     if (G.gameMode === 'multiplayer') sendData({ type: 'BLOCK_RESULT', cardId: card.id, resultType: 'OUT' });
     endPoint('loss', 'Bloqueio para fora.');
   } else if (roll < 0.70) {
@@ -219,6 +221,7 @@ function resolveDefense() {
     log(`${quality.emoji} Defesa ${quality.desc}! Ponto para o ${oppName}.`);
     G.aPts++;
     G.nextServer = 'ai';
+    G.ballFx = { tx: 26, ty: 33 };   // ataque da IA bate no chão da sua quadra
     if (G.gameMode === 'multiplayer') sendData({ type: 'DEFENSE_FAIL', defPow, quality: quality.quality, gap });
     endPoint('loss', `Defesa insuficiente (Gap: ${gap})`);
   }
@@ -233,6 +236,7 @@ function autoResolve() {
   log('⏱ Tempo esgotado! Defesa 0.');
   G.aPts++;
   G.nextServer = 'ai';
+  G.ballFx = { tx: 26, ty: 33 };   // bola bate no chão da sua quadra
   if (G.gameMode === 'multiplayer') sendData({ type: 'DEFENSE_FAIL', defPow: 0, quality: 'ataque_dominante' });
   endPoint('loss', 'O ataque/saque superou a defesa.');
 }
@@ -256,6 +260,7 @@ function resolvePlayerAttack(pow, attackCard) {
     log(`❌ Seu ${attackCard.name} foi para fora! Ponto da IA.`);
     G.aPts++;
     G.nextServer = 'ai';
+    G.ballFx = { tx: 96, ty: 33 };   // seu ataque sai, atrás da linha de fundo da IA
     endPoint('loss', 'Ataque para fora.');
     return;
   }
@@ -299,12 +304,14 @@ function aiResolveBlock(pow, attackCard) {
     log(`🧱 O bloqueio IA ${blockCard.name} parou a bola na sua quadra! Ponto da IA.`);
     G.aPts++;
     G.nextServer = 'ai';
+    G.ballFx = { tx: 26, ty: 33 };   // bola cai no chão da quadra do usuário
     endPoint('loss', 'Bloqueio direto da IA.');
     return { scored: true };
   } else if (roll < 0.40) {
     log(`❌ O bloqueio IA ${blockCard.name} saiu para fora! Ponto seu.`);
     G.pPts++;
     G.nextServer = 'player';
+    G.ballFx = { tx: 96, ty: 33 };   // bola desvia para fora, atrás da linha da IA
     endPoint('win', 'Bloqueio da IA para fora.');
     return { scored: true };
   } else {
@@ -353,6 +360,7 @@ function aiDefendAgainst(pow, attackCard) {
     log('✅ Ponto seu! IA não conseguiu defender.');
     G.pPts++;
     G.nextServer = 'player';
+    G.ballFx = { tx: 74, ty: 33 };   // seu ataque encosta no chão da quadra da IA
     endPoint('win', `Ataque superou defesa (Gap: ${gap})`);
   }
 }

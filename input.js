@@ -91,9 +91,11 @@ function playCard() {
       const oppName = G.gameMode === 'multiplayer' ? 'Oponente' : 'IA';
       if (isOut) {
         log(`❌ O seu ${card.name} foi para fora! Ponto do ${oppName}.`);
+        G.ballFx = { tx: 96, ty: 33 };   // bola longa, atrás da linha de fundo da IA
         endPoint('loss', 'Saque para fora.');
       } else {
         log(`❌ O seu ${card.name} bateu na rede! Ponto do ${oppName}.`);
+        G.ballFx = { tx: 45, ty: 72 };   // para na rede, não passa
         endPoint('loss', 'Saque na rede.');
       }
       G.aPts++;
@@ -104,6 +106,14 @@ function playCard() {
       log('🏐 Saque realizado com sucesso! A bola cruzou a rede...');
       G.phase = 'defense';
       if (G.gameMode === 'multiplayer') sendData({ type: 'SERVICE_SUCCESS', power: card.power });
+      // Coreografia da ofensiva da IA: saque → receptor IA → levantador → corte
+      if (typeof ballSeq === 'function') {
+        ballSeq([
+          { tx: 76, ty: 45,  at: 0 },    // receptor IA (boneco de trás)
+          { tx: 66, ty: 110, at: 750 },  // levantador IA (boneco da rede)
+          { tx: 58, ty: 95,  at: 1500 }, // corte da IA rumo à rede
+        ]);
+      }
       render();
       setTimeout(() => passBall(true, true), 600);
     }

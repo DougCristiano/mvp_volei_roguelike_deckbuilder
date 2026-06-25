@@ -57,13 +57,25 @@ function render() {
   else if (G.possession === 'player') msg.textContent = 'Sua vez de jogar';
   else msg.textContent = G.gameMode === 'multiplayer' ? 'Aguardando Oponente...' : 'Aguardando IA...';
 
-  // Energy pips
+  // Energy pips — reflect the selected card(s): red = spent (cost), green = restored (energy bonus)
+  const selectedCost = (G.selected || []).reduce((s, i) => s + (G.hand[i]?.cost || 0), 0);
+  let energyGain = 0;
+  (G.selected || []).forEach(i => {
+    const b = G.hand[i]?.bonus;
+    if (b === 'energy1') energyGain += 1;
+    if (b === 'energy2') energyGain += 2;
+  });
+  const spendFrom = G.energy - selectedCost;                     // top filled pips that disappear
+  const gainTo    = Math.min(G.maxEnergy, G.energy + energyGain); // empty pips that fill back
   const headerPips = document.getElementById('energy-pips-header');
   if (headerPips) {
     headerPips.innerHTML = '';
     for (let i = 0; i < G.maxEnergy; i++) {
+      const filled = i < G.energy;
+      const spend  = filled  && selectedCost > 0 && i >= spendFrom;
+      const gain   = !filled && energyGain   > 0 && i >= G.energy && i < gainTo;
       const p = document.createElement('div');
-      p.className = 'energy-pip' + (i < G.energy ? ' filled' : '');
+      p.className = 'energy-pip' + (filled ? ' filled' : '') + (spend ? ' pending' : '') + (gain ? ' pending-gain' : '');
       headerPips.appendChild(p);
     }
   }
@@ -82,8 +94,56 @@ function render() {
   renderHand();
   renderResolve();
   renderActions();
+  renderOffensePreview();
   renderLog();
   moveBall();
+}
+
+// Live offensive preview: accumulated attack power and opponent defense penalty.
+// Reflects G.atkBoost / G.nextAttackBonus / G.aiDefMinus plus the currently-selected
+// cards' bonuses, so the player sees the full effect before committing.
+function renderOffensePreview() {
+  const el = document.getElementById('offense-preview');
+  if (!el) return;
+
+  const active = !G.defWindow && !G.blockWindow && !G.pointDone &&
+                 G.possession === 'player' && (G.phase === 'setting' || G.phase === 'attack');
+  if (!active) { el.style.display = 'none'; return; }
+
+  const team    = (typeof getCampaignTeam === 'function') ? getCampaignTeam() : null;
+  const teamAtk = team?.passives?.attackBonus ?? 0;
+
+  // Start from already-accumulated state, then layer in the selected cards' bonuses
+  let boost    = G.atkBoost || 0;
+  let defMinus = G.aiDefMinus || 0;
+  let atkPower = null;   // base power of a selected attack card (null = none selected)
+
+  (G.selected || []).forEach(i => {
+    const c = G.hand[i];
+    if (!c) return;
+    if (c.bonus === 'atkBoost2') boost += 2;
+    if (c.bonus === 'atkBoost3') boost += 3;
+    if (c.bonus === 'atkBoost6') boost += 6;
+    if (c.bonus === 'aiDefMinus1') defMinus += 1;
+    if (c.bonus === 'aiDefMinus2') defMinus += 2;
+    if (c.type !== 'coach' && c.phases.includes('attack')) atkPower = c.power;
+  });
+
+  const parts = [];
+  if (atkPower !== null) {
+    const total = atkPower + boost + (G.nextAttackBonus || 0) + teamAtk;
+    parts.push(`<span class="op-atk">⚔ Ataque previsto: <b>${total}</b></span>`);
+  } else if (boost > 0 || (G.nextAttackBonus || 0) > 0 || teamAtk > 0) {
+    const pending = boost + (G.nextAttackBonus || 0) + teamAtk;
+    parts.push(`<span class="op-atk">⚔ Bônus de ataque: <b>+${pending}</b></span>`);
+  }
+  if (defMinus > 0) {
+    parts.push(`<span class="op-def">🛡️ Defesa adv.: <b>−${defMinus}</b></span>`);
+  }
+
+  if (parts.length === 0) { el.style.display = 'none'; return; }
+  el.innerHTML = parts.join('');
+  el.style.display = 'flex';
 }
 
 function renderHand() {
@@ -184,21 +244,61 @@ function renderLog() {
 // parabola that arcs over the net whenever the ball changes side.
 let _ballTargetKey = '';
 let _ballAnimId    = null;
-let _ballX = 12, _ballY = 16;  // current resolved position (x in %, y in px)
+let _ballX = 3, _ballY = 33;   // current resolved position (x in %, y in px)
 const _NET_TOP_PX = 136;       // approx top of #net-bar (bottom 40 + height 96)
+
+// Timed ball choreography (used when game logic runs synchronously, e.g. AI offense)
+let _ballSeqTimers = [];
+let _ballSeqActive = false;
+function clearBallSeq() {
+  _ballSeqTimers.forEach(clearTimeout);
+  _ballSeqTimers = [];
+  _ballSeqActive = false;
+}
+function ballTo(tx, ty) {                 // animate current → target right now
+  const ball = document.getElementById('ball');
+  if (!ball) return;
+  _ballTargetKey = tx + ',' + ty;
+  animateBall(ball, _ballX, _ballY, tx, ty);
+}
+function ballSeq(steps) {                 // steps: [{tx,ty,at}] (at = ms from now)
+  clearBallSeq();
+  _ballSeqActive = true;
+  steps.forEach(s => _ballSeqTimers.push(setTimeout(() => ballTo(s.tx, s.ty), s.at)));
+  const last = steps[steps.length - 1];
+  _ballSeqTimers.push(setTimeout(() => { _ballSeqActive = false; }, last.at + 50));
+}
 
 function moveBall() {
   const ball = document.getElementById('ball');
   if (!ball) return;
 
-  // Pick target anchor (element box: left %, bottom px) from game state
+  // 1) Terminal outcome position set by a rally result (point on floor, out, net)
+  if (G.ballFx) {
+    const key = G.ballFx.tx + ',' + G.ballFx.ty;
+    if (key !== _ballTargetKey) { _ballTargetKey = key; animateBall(ball, _ballX, _ballY, G.ballFx.tx, G.ballFx.ty); }
+    return;
+  }
+  // 2) A timed choreography is in control — don't fight it
+  if (_ballSeqActive) return;
+
+  // 3) Pick resting anchor from game state (element box: left %, bottom px)
   let tx, ty;
-  if (G.phase === 'service') {
-    if (G.possession === 'player') { tx = 12; ty = 16; }  // behind left court line
-    else                           { tx = 84; ty = 16; }  // behind right court line
-  } else if (G.defWindow)          { tx = 46; ty = 64; }  // contested at the net
-  else if (G.possession === 'player') { tx = 22; ty = 50; }
-  else                             { tx = 70; ty = 50; }
+  if (G.blockWindow) {
+    tx = 50; ty = 125;                                    // topo da rede (bloqueio)
+  } else if (G.defWindow) {
+    tx = 26; ty = 70;                                     // bola vindo para defender
+  } else if (G.possession === 'player') {
+    if      (G.phase === 'service')  { tx = 3;  ty = 33; } // fora da linha esquerda
+    else if (G.phase === 'defense')  { tx = 24; ty = 45; } // recepção (boneco de trás)
+    else if (G.phase === 'setting')  { tx = 34; ty = 110; } // levantamento (boneco da rede)
+    else                             { tx = 42; ty = 95; }  // corte rumo à rede
+  } else {
+    if      (G.phase === 'service')  { tx = 97; ty = 33; } // fora da linha direita (IA)
+    else if (G.phase === 'defense')  { tx = 76; ty = 45; } // IA recebendo (boneco de trás)
+    else if (G.phase === 'setting')  { tx = 66; ty = 110; } // IA levantando
+    else                             { tx = 58; ty = 95; }  // IA corte
+  }
 
   const key = tx + ',' + ty;
   if (key === _ballTargetKey) return;  // no change → don't restart animation
@@ -260,6 +360,46 @@ function initCrowd() {
   waveIndex = PER_SIDE;
   fill(right, false);
   _crowdBuilt = true;
+}
+
+// Shows a modal with the full run deck (deck + hand + discard), grouped by type.
+function showDeckModal() {
+  const all = [...(G.deck || []), ...(G.hand || []), ...(G.discard || [])];
+  const TYPE_LABELS = {
+    service: 'Saque', defense: 'Defesa', setting: 'Levantamento',
+    attack: 'Ataque', block: 'Bloqueio', coach: 'Técnico',
+  };
+  const TYPE_ORDER = ['service', 'defense', 'setting', 'attack', 'block', 'coach'];
+
+  // Group by type, then count duplicates by card id
+  const byType = {};
+  all.forEach(c => {
+    (byType[c.type] = byType[c.type] || {});
+    byType[c.type][c.id] = byType[c.type][c.id] || { card: c, count: 0 };
+    byType[c.type][c.id].count++;
+  });
+
+  const list = document.getElementById('deck-modal-list');
+  list.innerHTML = '';
+  TYPE_ORDER.forEach(type => {
+    const group = byType[type];
+    if (!group) return;
+    const entries = Object.values(group).sort((a, b) => (a.card.cost - b.card.cost) || a.card.name.localeCompare(b.card.name));
+    const groupEl = document.createElement('div');
+    let html = `<div class="deck-group-title">${TYPE_LABELS[type] || type}</div>`;
+    entries.forEach(({ card, count }) => {
+      const stats = `${card.power > 0 ? `Poder ${card.power}` : '—'} · Custo ${card.cost}`;
+      html += `<div class="deck-card-row"><span class="deck-card-count">${count}×</span>` +
+              `<span class="deck-card-name">${card.name}</span>` +
+              `<span class="deck-card-stats">${stats}</span></div>`;
+    });
+    groupEl.innerHTML = html;
+    list.appendChild(groupEl);
+  });
+
+  document.getElementById('deck-modal-subtitle').textContent =
+    `${all.length} cartas no total (baralho + mão + descarte)`;
+  document.getElementById('deck-overlay').style.display = 'flex';
 }
 
 function showPointResult(type, title, desc) {

@@ -111,9 +111,11 @@ function aiTurn() {
         const isOut = Math.random() < 0.5;
         if (isOut) {
           log('🎉 O saque da IA foi para fora! Ponto seu.');
+          G.ballFx = { tx: 4, ty: 33 };    // bola longa, atrás da linha de fundo do usuário
           endPoint('win', 'Erro de saque da IA (bola para fora).');
         } else {
           log('🎉 O saque da IA bateu na rede! Ponto seu.');
+          G.ballFx = { tx: 55, ty: 72 };   // para na rede, não passa
           endPoint('win', 'Erro de saque da IA (bola na rede).');
         }
         G.pPts++;
@@ -121,6 +123,8 @@ function aiTurn() {
         render();
       } else {
         log('🏐 O Saque da IA cruzou a rede...');
+        // Saque da IA cruza até o receptor do usuário (boneco de trás, esquerda)
+        if (typeof ballSeq === 'function') ballSeq([{ tx: 24, ty: 45, at: 0 }]);
         startDefenseWindow(true);
       }
     } else {

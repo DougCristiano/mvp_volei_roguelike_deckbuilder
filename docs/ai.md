@@ -31,6 +31,7 @@ The AI is a full mirror of the Player (same phases, same card types, same energy
 | `G.locked` | — | ✓ |
 | `G.pPts`, `G.aPts` | ✓ | ✓ (service error: pPts++) |
 | `G.nextServer` | — | ✓ (service error: set to 'player') |
+| `G.ballFx` | — | ✓ (set before endPoint on serve error) |
 | `G.comboIdx` | — | — (AI uses local comboCount) |
 | `G.nextAttackBonus` | — | ✓ (via quality from startDefenseWindow callbacks) |
 | `G.gameMode` | ✓ | — |
@@ -71,7 +72,9 @@ aiTurn()
   ├── possession === 'ai' (AI serves)
   │     → getAIPlay('service')
   │     → error chance: 5% + power×3%
-  │     → success → G.possession = 'ai', startDefenseWindow(true)
+  │     → on error: set G.ballFx (out/net) + endPoint
+  │     → on success: ballSeq([{tx:24, ty:45, at:0}]) + startDefenseWindow(true)
+  │       (bola animates to player receptor, IA serve reaches)
   └── possession !== 'ai' (AI attacks after winning defense)
         1. Defense (if !aiJustDefended):
            → getAIPlay('defense')
@@ -86,6 +89,11 @@ aiTurn()
            → G.aiNextAtkBonus = 0  (consumed)
            → open blockWindow for player
 ```
+
+**Serve choreography** (when AI serves successfully):
+- Ball animates to player receptor at `{tx:24, ty:45}` (left side, back/receiver)
+- No further ballSeq — player's reception/set/attack are click-driven, so moveBall() resumes normal phase-based logic
+
 
 ---
 

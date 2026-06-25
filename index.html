@@ -57,10 +57,10 @@
     <div id="sand-reflection"></div>
     <div id="crowd-left"></div>
     <div id="crowd-right"></div>
-    <div class="player-sprite" id="player-left" style="--player-color:#1d9e75;"></div>
-    <div class="player-sprite" id="player-right" style="--player-color:#1d9e75;"></div>
-    <div class="player-sprite" id="ai-left" style="--player-color:#d85a30;"></div>
-    <div class="player-sprite" id="ai-right" style="--player-color:#d85a30;"></div>
+    <div class="player-sprite" id="player-left"></div>
+    <div class="player-sprite" id="player-right"></div>
+    <div class="player-sprite" id="ai-left"></div>
+    <div class="player-sprite" id="ai-right"></div>
     <div class="ball" id="ball">🏐</div>
     <button id="btn-desistir" title="Desistir da partida">✕</button>
   </div>
@@ -106,6 +106,7 @@
     </div>
 
     <div id="hand-area">
+      <div id="offense-preview" style="display:none;"></div>
       <div id="hand-cards"></div>
     </div>
 
@@ -128,7 +129,10 @@
       </div>
     </div>
 
-    <div id="deck-info">Baralho: <span id="deck-count">0</span> | Desc: <span id="discard-count">0</span></div>
+    <div id="deck-info">
+      Baralho: <span id="deck-count">0</span> | Desc: <span id="discard-count">0</span>
+      <button class="btn btn-secondary" id="btn-view-deck">🃏 Ver Deck</button>
+    </div>
 
   </div><!-- fim #player-dashboard -->
 
@@ -151,6 +155,15 @@
       <button class="btn btn-secondary" id="btn-quit-cancel">Continuar jogando</button>
       <button class="btn btn-danger" id="btn-quit-confirm">Sim, desistir</button>
     </div>
+  </div>
+</div>
+
+<div id="deck-overlay">
+  <div id="deck-box">
+    <div id="deck-modal-title">🃏 Seu Deck</div>
+    <div id="deck-modal-subtitle"></div>
+    <div id="deck-modal-list"></div>
+    <button class="btn btn-secondary" id="btn-deck-close" style="width:100%;margin-top:14px">Fechar</button>
   </div>
 </div>
 

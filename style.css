@@ -2,7 +2,7 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:system-ui,sans-serif;background:var(--sky);min-height:100vh;color:var(--text-dark);}
 #app{display:grid;grid-template-columns:1fr 220px;grid-template-rows:auto 1fr auto;height:100vh;width:100%;margin:0 auto;background:var(--sky);position:relative;gap:0;overflow:hidden;}
-#court{position:relative;overflow:hidden;grid-column:1;grid-row:2;border-right:2px solid rgba(0,0,0,0.2);}
+#court{position:relative;overflow:hidden;grid-column:1;grid-row:2;border-right:2px solid rgba(0,0,0,0.2);border-bottom:12px solid #6B4A10;}
 #sky-gradient{position:absolute;inset:0;background:linear-gradient(180deg,#B8E4FF 0%,#7EC8F0 30%,#4AAAD4 65%,#2A80B0 100%);z-index:0;}
 #light-effect{position:absolute;inset:0;background:radial-gradient(ellipse at 88% 5%, rgba(255,255,200,0.22) 0%, transparent 55%);z-index:1;pointer-events:none;}
 #sun{position:absolute;top:18px;right:55px;width:40px;height:40px;background:radial-gradient(circle at 38% 35%, #FFFFC0, #FFD700);border-radius:50%;box-shadow:0 0 28px rgba(255,210,0,0.7), 0 0 60px rgba(255,210,0,0.2), inset -3px -3px 6px rgba(180,130,0,0.3);z-index:2;}
@@ -29,11 +29,15 @@ body{font-family:system-ui,sans-serif;background:var(--sky);min-height:100vh;col
 @keyframes crowd-bob{0%,100%{transform:translateY(0);}30%{transform:translateY(-6px);}}
 .player-sprite{position:absolute;width:16px;height:28px;image-rendering:pixelated;z-index:5;pointer-events:none;}
 .player-sprite::before{content:'';position:absolute;top:0;left:4px;width:8px;height:8px;background:#f0c098;border-radius:1px;}
-.player-sprite::after{content:'';position:absolute;top:8px;left:0;width:16px;height:20px;background:var(--player-color,#2a6fa8);}
-#player-left{bottom:68px;left:12%;}
-#player-right{bottom:68px;right:12%;}
-#ai-left{bottom:68px;left:18%;}
-#ai-right{bottom:68px;right:18%;}
+.player-sprite::after{content:'';position:absolute;top:8px;left:0;width:16px;height:20px;}
+#player-left{position:absolute;bottom:39px;left:22%;}
+#player-left::after{background:#1d9e75;}
+#player-right{position:absolute;bottom:39px;left:32%;}
+#player-right::after{background:#1d9e75;}
+#ai-left{position:absolute;bottom:39px;right:32%;}
+#ai-left::after{background:#d85a30;}
+#ai-right{position:absolute;bottom:39px;right:22%;}
+#ai-right::after{background:#d85a30;}
 #court-sand{position:absolute;bottom:0;left:0;right:0;height:85px;background:linear-gradient(180deg,#FFE870 0%,#EDD060 20%,#D8BB50 55%,#C4A838 100%);border-top:4px solid #8B7020;z-index:4;}
 #sand-reflection{position:absolute;bottom:0;left:50%;width:60%;height:40px;background:radial-gradient(ellipse 100px 28px at center,rgba(255,255,180,0.18),transparent);transform:translateX(-50%);z-index:4;pointer-events:none;}
 .ball{position:absolute;width:28px;height:28px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:none;z-index:6;}
@@ -64,6 +68,23 @@ body{font-family:system-ui,sans-serif;background:var(--sky);min-height:100vh;col
 .energy-pip{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--energy-gold);background:transparent;transition:background 0.15s,transform 0.2s,box-shadow 0.2s;}
 .energy-pip.filled{background:var(--energy-gold);box-shadow:0 0 8px rgba(212,160,23,0.5);}
 .energy-pip.filled:nth-child(n+8){animation:energyPulse 0.6s ease-in-out infinite;}
+.energy-pip.pending{background:var(--coral);border-color:var(--coral);box-shadow:0 0 10px rgba(216,90,48,0.8);animation:energySpend 0.5s ease-in-out infinite !important;}
+.energy-pip.pending-gain{background:var(--teal);border-color:var(--teal);box-shadow:0 0 10px rgba(29,158,117,0.8);animation:energyGainPulse 0.5s ease-in-out infinite !important;}
+
+@keyframes energySpend{
+  0%,100%{transform:scale(1);box-shadow:0 0 8px rgba(216,90,48,0.6);}
+  50%{transform:scale(1.3);box-shadow:0 0 14px rgba(216,90,48,0.95);}
+}
+@keyframes energyGainPulse{
+  0%,100%{transform:scale(1);box-shadow:0 0 8px rgba(29,158,117,0.6);}
+  50%{transform:scale(1.3);box-shadow:0 0 14px rgba(29,158,117,0.95);}
+}
+
+/* ── Offense preview (accumulated attack power / opponent def penalty) ── */
+#offense-preview{display:none;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:8px;font-size:13px;}
+#offense-preview .op-atk{color:var(--coral);font-weight:700;background:rgba(216,90,48,0.1);padding:3px 10px;border-radius:20px;}
+#offense-preview .op-atk b{font-size:15px;}
+#offense-preview .op-def{color:var(--sky);font-weight:700;background:rgba(42,111,168,0.1);padding:3px 10px;border-radius:20px;}
 
 @keyframes energyPulse{
   0%,100%{transform:scale(1);}
@@ -196,6 +217,18 @@ body{font-family:system-ui,sans-serif;background:var(--sky);min-height:100vh;col
 #quit-msg{font-size:13px;color:var(--text-mid);margin-bottom:20px;line-height:1.5;}
 #quit-btns{display:flex;gap:10px;flex-direction:column;}
 
+/* ── Deck View Overlay ────────────────────────────────────────── */
+#deck-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(3px);}
+#deck-box{background:var(--card-bg);border-radius:14px;padding:24px;max-width:420px;width:90%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 16px 40px rgba(0,0,0,0.35);animation:overlaySlide 0.3s cubic-bezier(0.34,1.56,0.64,1);}
+#deck-modal-title{font-size:22px;font-weight:900;color:var(--text-dark);text-align:center;}
+#deck-modal-subtitle{font-size:12px;color:var(--text-mid);text-align:center;margin-bottom:14px;}
+#deck-modal-list{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px;}
+.deck-group-title{font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-light);border-bottom:2px solid var(--sand-border);padding-bottom:3px;margin-bottom:4px;}
+.deck-card-row{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:13px;color:var(--text-dark);}
+.deck-card-count{font-weight:800;color:var(--energy-gold);min-width:24px;}
+.deck-card-name{flex:1;font-weight:600;}
+.deck-card-stats{font-size:11px;color:var(--text-mid);}
+
 @keyframes overlaySlide{
   0%{opacity:0;transform:scale(0.9);}
   100%{opacity:1;transform:scale(1);}
@@ -245,7 +278,8 @@ body{font-family:system-ui,sans-serif;background:var(--sky);min-height:100vh;col
 
 #decision-arena{display:flex;flex-direction:column;gap:6px;}
 #resolve-panel h3{font-size:13px;color:var(--text-dark);margin:4px 0 8px;}
-#deck-info{text-align:center;font-size:11px;color:var(--text-light);padding:2px 0;}
+#deck-info{display:flex;align-items:center;justify-content:center;gap:12px;font-size:11px;color:var(--text-light);padding:2px 0;}
+#btn-view-deck{font-size:11px;padding:4px 12px;}
 
 /* ── Safe Area (iOS notch / home indicator) ──────────────────────── */
 @supports (padding-bottom:env(safe-area-inset-bottom)){

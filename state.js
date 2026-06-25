@@ -159,6 +159,8 @@ function startPoint() {
   G.nextPhaseExtraCard = false;
   clearInterval(G.blockInterval);
   clearInterval(G.defInterval);
+  G.ballFx = null;
+  if (typeof clearBallSeq === 'function') clearBallSeq();
   hidePointResult();
 
   if (G.possession === 'player') {

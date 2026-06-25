@@ -50,6 +50,7 @@ player vs AI attack/defense, scoring, set/match end. Also owns timers and freeba
 | `G.defenseQuality` | — | ✓ |
 | `G.coachUsed` | — | ✓ (set in resolveDefense/resolveBlock) |
 | `G.freeBlockUsed` | ✓ | ✓ (A Muralha passive) |
+| `G.ballFx` | — | ✓ (set before endPoint to show final ball position) |
 | `G.campaignTeam` | ✓ | — |
 | `G.gameMode` | ✓ | — |
 | `G.aiDifficulty` | ✓ | — |
@@ -150,6 +151,28 @@ errorChance = 0.05 + (card.power × 0.02)
 If triggered → attack goes out → point to AI
 Example: power 9 card → 5% + 18% = 23% error
 ```
+
+---
+
+## Ball animation outcomes (G.ballFx)
+
+Before each `endPoint()`, set `G.ballFx = {tx, ty}` to show where the ball ends up visually:
+
+| Outcome | ballFx | Location |
+|---------|--------|----------|
+| Serve out (player) | `{tx:96, ty:33}` | Behind IA's baseline (long serve) |
+| Serve net (player) | `{tx:45, ty:72}` | Stops at net, doesn't cross |
+| Serve out (IA) | `{tx:4, ty:33}` | Behind player's baseline |
+| Serve net (IA) | `{tx:55, ty:72}` | Stops at net, doesn't cross |
+| Block point (player) | `{tx:74, ty:33}` | Floor of IA's court (on line) |
+| Block out (player) | `{tx:4, ty:33}` | Out behind player's baseline |
+| Block point (IA) | `{tx:26, ty:33}` | Floor of player's court (on line) |
+| Block out (IA) | `{tx:96, ty:33}` | Out behind IA's baseline |
+| Attack point (player) | `{tx:74, ty:33}` | Floor of IA's court (on line) |
+| Attack out (player) | `{tx:96, ty:33}` | Out behind IA's baseline |
+| Defense fail (player) | `{tx:26, ty:33}` | Floor of player's court (on line) |
+
+`G.ballFx` is cleared by `startPoint()` so next point has clean state.
 
 ---
 

@@ -62,6 +62,18 @@ document.getElementById('btn-quit-confirm').addEventListener('click', () => {
   showMainMenu();
 });
 
+// ── Ver Deck ──────────────────────────────────────────────────────────────────
+const deckOverlay = document.getElementById('deck-overlay');
+document.getElementById('btn-view-deck').addEventListener('click', () => {
+  showDeckModal();
+});
+document.getElementById('btn-deck-close').addEventListener('click', () => {
+  deckOverlay.style.display = 'none';
+});
+deckOverlay.addEventListener('click', (e) => {
+  if (e.target === deckOverlay) deckOverlay.style.display = 'none';
+});
+
 // ── Main menu ─────────────────────────────────────────────────────────────────
 appUI.style.display    = 'none';
 mainMenu.style.display = 'flex';
