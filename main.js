@@ -31,22 +31,58 @@ document.getElementById('overlay-btn').addEventListener('click', () => {
   newGame();
 });
 
+// ── Navigation helpers ────────────────────────────────────────────────────────
+function showMainMenu() {
+  document.getElementById('overlay').style.display      = 'none';
+  document.getElementById('quit-overlay').style.display = 'none';
+  document.getElementById('btn-desistir').style.display = 'none';
+  appUI.style.display    = 'none';
+  mainMenu.style.display = 'flex';
+  // Reset multiplayer UI state
+  btnStartAI.style.display        = '';
+  btnStartMultiplayer.textContent = 'Multiplayer (Online)';
+  btnStartMultiplayer.disabled    = false;
+  multiplayerSetupUI.style.display = 'none';
+}
+
+// ── Desistir / Quit confirmation ──────────────────────────────────────────────
+const btnDesistir = document.getElementById('btn-desistir');
+const quitOverlay = document.getElementById('quit-overlay');
+
+btnDesistir.addEventListener('click', () => {
+  quitOverlay.style.display = 'flex';
+});
+
+document.getElementById('btn-quit-cancel').addEventListener('click', () => {
+  quitOverlay.style.display = 'none';
+});
+
+document.getElementById('btn-quit-confirm').addEventListener('click', () => {
+  quitOverlay.style.display = 'none';
+  showMainMenu();
+});
+
 // ── Main menu ─────────────────────────────────────────────────────────────────
-appUI.style.display = 'none'; // Hide game board until mode is chosen
+appUI.style.display    = 'none';
+mainMenu.style.display = 'flex';
 
 // Campaign: if player selected a team on campaign.html, start immediately
 const _pendingTeam = localStorage.getItem('ascension_campaign_team');
 if (_pendingTeam && CAMPAIGN_TEAMS[_pendingTeam]) {
   localStorage.removeItem('ascension_campaign_team');
-  mainMenu.style.display = 'none';
-  appUI.style.display    = 'grid';
+  mainMenu.style.display    = 'none';
+  appUI.style.display       = 'grid';
+  btnDesistir.style.display = 'block';
   newGame('campaign', false, _pendingTeam);
+  setTimeout(() => { initSeaCanvas(); initCrowd(); }, 0);
 }
 
 btnStartAI.addEventListener('click', () => {
-  mainMenu.style.display = 'none';
-  appUI.style.display    = 'grid';
+  mainMenu.style.display    = 'none';
+  appUI.style.display       = 'grid';
+  btnDesistir.style.display = 'block';
   newGame('ai');
+  setTimeout(() => { initSeaCanvas(); initCrowd(); }, 0);
 });
 
 btnStartMultiplayer.addEventListener('click', () => {

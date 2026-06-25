@@ -44,11 +44,25 @@
 
   <!-- ─── QUADRA ─────────────────────────────────────────────── -->
   <div id="court">
-    <div id="net-line"></div>
-    <div id="net-top"></div>
-    <div id="net-post"></div>
+    <div id="sky-gradient"></div>
+    <div id="light-effect"></div>
+    <div id="sun"></div>
+    <div id="cloud1" class="cloud"></div>
+    <div id="cloud2" class="cloud"></div>
+    <div id="cloud3" class="cloud"></div>
+    <canvas id="sea-canvas"></canvas>
+    <div id="net-bar"></div>
     <div id="court-sand"></div>
+    <div id="court-line"></div>
+    <div id="sand-reflection"></div>
+    <div id="crowd-left"></div>
+    <div id="crowd-right"></div>
+    <div class="player-sprite" id="player-left" style="--player-color:#1d9e75;"></div>
+    <div class="player-sprite" id="player-right" style="--player-color:#1d9e75;"></div>
+    <div class="player-sprite" id="ai-left" style="--player-color:#d85a30;"></div>
+    <div class="player-sprite" id="ai-right" style="--player-color:#d85a30;"></div>
     <div class="ball" id="ball">🏐</div>
+    <button id="btn-desistir" title="Desistir da partida">✕</button>
   </div>
 
   <!-- ─── LOG SIDEBAR ──────────────────────────────────────────── -->
@@ -125,6 +139,18 @@
     <div id="overlay-title"></div>
     <div id="overlay-msg"></div>
     <button class="btn btn-primary" id="overlay-btn" style="width:100%;margin-top:4px">Novo Jogo</button>
+    <div id="overlay-actions"></div>
+  </div>
+</div>
+
+<div id="quit-overlay">
+  <div id="quit-box">
+    <div id="quit-title">Desistir da partida?</div>
+    <p id="quit-msg">O progresso desta partida será perdido.</p>
+    <div id="quit-btns">
+      <button class="btn btn-secondary" id="btn-quit-cancel">Continuar jogando</button>
+      <button class="btn btn-danger" id="btn-quit-confirm">Sim, desistir</button>
+    </div>
   </div>
 </div>
 
