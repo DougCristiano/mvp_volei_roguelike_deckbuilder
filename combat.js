@@ -104,7 +104,7 @@ function resolveBlock() {
   if (coachIdx !== undefined) {
     const cc = G.hand[coachIdx];
     G.coachUsed = true;
-    G.energy -= cc.cost;
+    G.energy -= payCost(cc.cost);
     applyBonus(cc);
     if (cc.bonus === 'draw1') G.nextPhaseExtraCard = true;
     log(`📋 ${cc.name}`);
@@ -125,8 +125,12 @@ function resolveBlock() {
     blockCost = 0;
     G.freeBlockUsed = true;
     log(`${team.emoji} Bônus ${team.name}: primeiro bloqueio grátis!`);
+  } else if (team?.passives?.blockCostReduction) {
+    blockCost = Math.max(0, blockCost - team.passives.blockCostReduction);
+    log(`${team.emoji} Bônus ${team.name}: bloqueio -${team.passives.blockCostReduction} Energia!`);
   }
-  G.energy -= blockCost;
+  G.energy -= payCost(blockCost);
+  applyBonus(card);
   clearHand();
 
   const roll    = Math.random();
@@ -171,7 +175,7 @@ function resolveDefense() {
     const c = G.hand[idx];
     if (c?.type === 'coach') {
       G.coachUsed = true;
-      G.energy -= c.cost;
+      G.energy -= payCost(c.cost);
       applyBonus(c);
       if (c.bonus === 'draw1') G.nextPhaseExtraCard = true;
       log(`📋 ${c.name}`);
@@ -179,38 +183,56 @@ function resolveDefense() {
   });
 
   let defPow = 0;
+  let defTag = null;
+  let energyRefundEligible = false;
   [...G.selected].sort((a, b) => b - a).forEach(idx => {
     const c = G.hand[idx];
-    if (c && c.type !== 'coach' && c.phases.includes('defense') && c.cost <= G.energy) {
+    // Affordability must mirror canPlay(): consider the pending costReduceNext1 discount,
+    // otherwise a card selectable in the UI gets silently skipped here (defense 0).
+    const effCost = c ? Math.max(0, c.cost - (G.costDiscount || 0)) : 0;
+    if (c && c.type !== 'coach' && c.phases.includes('defense') && effCost <= G.energy) {
       defPow += c.power;
-      G.energy -= c.cost;
+      G.energy -= payCost(c.cost);
+      applyBonus(c);
+      defTag = c.tag || null;
+      if (c.bonus === 'energyRefund1') energyRefundEligible = true;
       log(`🛡 ${c.name} (poder ${c.power})`);
     }
   });
 
-  if (G.selected.some(i => G.hand[i]?.type !== 'coach')) G.comboIdx = 1; // defense counts as 1st combo touch
+  if (G.selected.some(i => G.hand[i]?.type !== 'coach')) { // defense counts as 1st combo touch
+    G.comboIdx = 1;
+    G.comboTags = [defTag];
+  }
 
   clearHand();
   G.defWindow = false;
   const oppName = G.gameMode === 'multiplayer' ? 'Oponente' : 'IA';
 
-  const gap     = defPow - G.aiAtkPow;
+  const team = getCampaignTeam();
+  const defGapBonus = team?.passives?.defGapBonus ?? 0;
+  const gap     = defPow - G.aiAtkPow + defGapBonus;
   const quality = getDefenseQuality(gap);
 
+  if (defGapBonus > 0) log(`${team.emoji} Bônus ${team.name}: +${defGapBonus} no gap de defesa!`);
   log(`⚖ Gap: ${gap} (${quality.emoji} ${quality.desc})`);
 
-  const team = getCampaignTeam();
-  const defBonus = team?.passives?.defenseRateBonus ?? 0;
+  // A Fortaleza: guaranteed floor bonus when the gap shift alone didn't already secure a high tier.
+  const rateFloor = team?.passives?.defRateFloor ?? 0;
   let successRate = quality.successRate;
-  if (defBonus > 0) {
-    successRate = Math.min(1.0, successRate + defBonus);
-    log(`${team.emoji} Bônus ${team.name}: +${Math.round(defBonus * 100)}% de defesa!`);
+  if (rateFloor > 0 && successRate < 0.95) {
+    successRate = Math.min(1.0, successRate + rateFloor);
+    log(`${team.emoji} Bônus ${team.name}: +${Math.round(rateFloor * 100)}% de chance de defesa!`);
   }
 
   if (Math.random() < successRate) {
     log(`${quality.emoji} Defesa ${quality.desc}! A bola está sob seu controle.`);
     G.nextAttackBonus = quality.nextAtkBonus;
     G.defenseQuality  = quality;
+    if (energyRefundEligible && (quality.quality === 'vantagem_defensiva' || quality.quality === 'defesa_dominante')) {
+      G.energy = Math.min(G.energy + 1, G.maxEnergy);
+      log('🎯 Recepção Perfeita! +1 Energia.');
+    }
     if (G.gameMode === 'multiplayer') sendData({ type: 'DEFENSE_SUCCESS', defPow, quality: quality.quality, gap });
     G.possession = 'player';
     G.phase      = 'setting';
@@ -254,8 +276,10 @@ function resolvePlayerAttack(pow, attackCard) {
     return;
   }
 
-  // Chance of attack going out (error by attacker)
-  const errorChance = 0.05 + (attackCard.power * 0.02);
+  // Chance of attack going out (error by attacker). Uses total power (pow) — includes
+  // atkBoost/combo/team bonuses — so a boosted attack carries proportionally more risk,
+  // consistent with the service error formula (which scales with the power actually played).
+  const errorChance = 0.05 + (pow * 0.02);
   if (Math.random() < errorChance) {
     log(`❌ Seu ${attackCard.name} foi para fora! Ponto da IA.`);
     G.aPts++;
@@ -287,7 +311,7 @@ function resolvePlayerAttack(pow, attackCard) {
 // AI attempts to block the player's attack
 function aiResolveBlock(pow, attackCard) {
   const possibleBlk = CARDS_DB
-    .filter(c => c.phases.includes('block') && c.cost <= G.aiEnergy);
+    .filter(c => c.phases.includes('block') && c.cost <= G.aiEnergy && !c.locked);
 
   if (possibleBlk.length === 0) {
     log('🏃 IA decidiu deixar o bloqueio passar.');
@@ -325,7 +349,7 @@ function aiResolveBlock(pow, attackCard) {
 // AI defends against the attack
 function aiDefendAgainst(pow, attackCard) {
   const possibleDef = CARDS_DB
-    .filter(c => c.phases.includes('defense') && c.cost <= G.aiEnergy)
+    .filter(c => c.phases.includes('defense') && c.cost <= G.aiEnergy && !c.locked)
     .sort((a, b) => b.power - a.power);
 
   let aiDef = 0;

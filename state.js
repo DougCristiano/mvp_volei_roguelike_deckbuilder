@@ -49,7 +49,9 @@ function newGame(gameMode = 'ai', isHost = false, campaignTeam = null) {
 
     // Combat bonuses
     comboIdx: 0,
+    comboTags: [],        // tags of defense/setting/attack cards played this rally (tag-combo detection)
     atkBoost: 0,
+    costDiscount: 0,      // costReduceNext1 bonus: energy discount applied to the next card played
     nextAttackBonus: 0,   // Bonus/malus carried from player defense quality
     aiNextAtkBonus: 0,    // Bonus/malus carried from AI defense quality
     aiDefMinus: 0,
@@ -110,7 +112,9 @@ function startNextCampaignMatch() {
   G.aPts               = 0;
   G.nextServer         = 'player';
   G.comboIdx           = 0;
+  G.comboTags          = [];
   G.atkBoost           = 0;
+  G.costDiscount       = 0;
   G.nextAttackBonus    = 0;
   G.aiNextAtkBonus     = 0;
   G.aiDefMinus         = 0;
@@ -142,7 +146,9 @@ function startPoint() {
   G.phase     = 'service';
   G.possession = G.nextServer || 'player';
   G.comboIdx  = 0;
+  G.comboTags = [];
   G.atkBoost  = 0;
+  G.costDiscount = 0;
   G.nextAttackBonus = 0;
   G.aiNextAtkBonus  = 0;
   G.aiDefMinus = 0;

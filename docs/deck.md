@@ -33,17 +33,25 @@ Does not contain game logic — only pure deck operations.
 ---
 
 ## buildDeck() — deck composition
-Base: `BASE_DECK_COPIES` from `campaign.js` (total ~14 cards without bias).
+Base: `BASE_DECK_CARDS` from `campaign.js` — a **curated** list of card ids per type
+(3 each of service/defense/setting/attack/block = 15 cards). The curation guarantees that
+defense/setting/attack each cover all 3 tags (`power`/`precision`/`tempo`), so every
+tag-combo route is reachable from the first point. `BASE_DECK_COPIES` is derived from the
+list lengths (used by campaign.html preview).
+
 Campaign teams shift +2 copies to their specialty type (`CAMPAIGN_TEAMS[team].deckBias`).
+Bias slots beyond the curated list are filled with the remaining **unlocked** cards of that
+type (CARDS_DB order), wrapping into duplicates only if the type runs out of cards.
 
 | Team | Specialty | Result |
 |---|---|---|
-| Os Meteoros | attack +2 | 3srv/3def/2set/5atk/3blk = 16 |
-| A Muralha | block +2 | 3srv/3def/2set/3atk/5blk = 16 |
-| A Fortaleza | defense +2 | 3srv/5def/2set/3atk/3blk = 16 |
-| No team (AI mode) | — | 42 cards: 7 copies each of 6 types |
+| Os Meteoros | attack +2 | 3srv/3def/3set/5atk/3blk = 17 |
+| A Muralha | block +2 | 3srv/3def/3set/3atk/5blk = 17 |
+| A Fortaleza | defense +2 | 3srv/5def/3set/3atk/3blk = 17 |
+| No team (AI mode) | — | 15 cards (base deck) |
 
-> Coach cards (type: 'coach') are always included in every deck build via the normal 7-per-type rule.
+> Coach cards (type: 'coach') are NOT part of the base deck — they enter via campaign rewards.
+> Locked cards never enter a deck via buildDeck (only via rewards after XP unlock).
 
 ---
 

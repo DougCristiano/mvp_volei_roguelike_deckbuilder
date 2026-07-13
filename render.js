@@ -106,9 +106,21 @@ function renderOffensePreview() {
   const el = document.getElementById('offense-preview');
   if (!el) return;
 
-  const active = !G.defWindow && !G.blockWindow && !G.pointDone &&
+  if (G.pointDone) { el.style.display = 'none'; return; }
+
+  const parts = [];
+  if ((G.costDiscount || 0) > 0) {
+    parts.push(`<span class="op-discount">🔄 Próxima carta: <b>-${G.costDiscount}⚡</b></span>`);
+  }
+
+  const offenseActive = !G.defWindow && !G.blockWindow &&
                  G.possession === 'player' && (G.phase === 'setting' || G.phase === 'attack');
-  if (!active) { el.style.display = 'none'; return; }
+  if (!offenseActive) {
+    if (parts.length === 0) { el.style.display = 'none'; return; }
+    el.innerHTML = parts.join('');
+    el.style.display = 'flex';
+    return;
+  }
 
   const team    = (typeof getCampaignTeam === 'function') ? getCampaignTeam() : null;
   const teamAtk = team?.passives?.attackBonus ?? 0;
@@ -129,7 +141,6 @@ function renderOffensePreview() {
     if (c.type !== 'coach' && c.phases.includes('attack')) atkPower = c.power;
   });
 
-  const parts = [];
   if (atkPower !== null) {
     const total = atkPower + boost + (G.nextAttackBonus || 0) + teamAtk;
     parts.push(`<span class="op-atk">⚔ Ataque previsto: <b>${total}</b></span>`);
@@ -155,7 +166,10 @@ function renderHand() {
     const blocked  = !playable || (G.locked && !G.defWindow);
     const div      = document.createElement('div');
     div.className  = 'card' + (sel ? ' selected' : '') + (blocked ? ' disabled' : '');
-    div.innerHTML  = `<div class="card-type type-${card.type}">${card.type}</div>` +
+    const tagInfo  = card.tag && typeof CARD_TAGS !== 'undefined' ? CARD_TAGS[card.tag] : null;
+    const tagBadge = tagInfo ? `<div class="card-tag" title="${tagInfo.name}">${tagInfo.emoji}</div>` : '';
+    div.innerHTML  = tagBadge +
+                     `<div class="card-type type-${card.type}">${card.type}</div>` +
                      `<div class="card-cost">${card.cost}</div>` +
                      `<div class="card-name">${card.name}</div>` +
                      `<div class="card-power">${card.power > 0 ? card.power : '—'}</div>` +

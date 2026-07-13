@@ -87,14 +87,14 @@ describe('getDefenseQuality — successRate per tier', () => {
     expect(getDefenseQuality(3).successRate).toBe(0.95);
   });
 
-  test('vantagem_defensiva has 100% success', () => {
-    expect(getDefenseQuality(4).successRate).toBe(1.0);
-    expect(getDefenseQuality(6).successRate).toBe(1.0);
+  test('vantagem_defensiva has 97% success', () => {
+    expect(getDefenseQuality(4).successRate).toBe(0.97);
+    expect(getDefenseQuality(6).successRate).toBe(0.97);
   });
 
-  test('defesa_dominante has 100% success', () => {
-    expect(getDefenseQuality(7).successRate).toBe(1.0);
-    expect(getDefenseQuality(20).successRate).toBe(1.0);
+  test('defesa_dominante has 97% success', () => {
+    expect(getDefenseQuality(7).successRate).toBe(0.97);
+    expect(getDefenseQuality(20).successRate).toBe(0.97);
   });
 });
 

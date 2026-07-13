@@ -15,7 +15,15 @@ function canPlay(card) {
     return card.cost + selCost <= G.energy;
   }
   const phases = getCurrentValidPhases();
-  return card.phases.some(p => phases.includes(p)) && card.cost <= G.energy;
+  const effectiveCost = Math.max(0, card.cost - (G.costDiscount || 0));
+  return card.phases.some(p => phases.includes(p)) && effectiveCost <= G.energy;
+}
+
+// Pays a cost, consuming any pending costReduceNext1 discount. Returns actual energy spent.
+function payCost(cost) {
+  const discount = Math.min(cost, G.costDiscount || 0);
+  G.costDiscount = (G.costDiscount || 0) - discount;
+  return cost - discount;
 }
 
 function selectCard(idx) {
@@ -75,7 +83,7 @@ function playCard() {
     log(`📋 ${coachCard.name}`);
   }
 
-  G.energy -= card.cost;
+  G.energy -= payCost(card.cost);
   applyBonus(card);
   log(`✅ ${card.name} [${PHASE_NAMES[G.phase]}, poder ${card.power}]`);
   updateCombo(card);
@@ -184,18 +192,40 @@ function applyBonus(card) {
   if (card.bonus === 'draw1')      { log('🃏 Comunicação! +1 opção extra de carta.'); }
   if (card.bonus === 'aiDefMinus1') { G.aiDefMinus += 1; log(`${G.gameMode === 'multiplayer' ? 'Oponente' : 'IA'} defende com -1!`); }
   if (card.bonus === 'aiDefMinus2') { G.aiDefMinus += 2; log(`${G.gameMode === 'multiplayer' ? 'Oponente' : 'IA'} defende com -2!`); }
+  if (card.bonus === 'costReduceNext1') { G.costDiscount = (G.costDiscount || 0) + 1; log('🔄 Próxima carta custa -1 Energia!'); }
+  // 'energyRefund1' is conditional on defense outcome — resolved in combat.js:resolveDefense()
 }
 
+// Tracks the defense→setting→attack sequence for the current rally and its tags.
+// Completing the sequence grants the generic combo bonus; matching all 3 tags upgrades
+// it to a tag-specific payoff (see CARD_TAGS in data.js).
 function updateCombo(card) {
   if (card.type === 'coach') return;
   if (G.comboIdx < COMBO_SEQ.length && card.type === COMBO_SEQ[G.comboIdx]) {
+    G.comboTags[G.comboIdx] = card.tag || null;
     G.comboIdx++;
     if (G.comboIdx === COMBO_SEQ.length) {
       sounds.combo();
-      G.atkBoost += 2;
-      log('🔥 COMBO! +2 poder bônus!');
+      const [t1, t2, t3] = G.comboTags;
+      if (t1 && t1 === t2 && t2 === t3) {
+        const tagInfo = CARD_TAGS[t1];
+        if (t1 === 'power') {
+          G.atkBoost += 4;
+          log(`🔥 Combo de ${tagInfo.emoji} ${tagInfo.name}! +4 poder bônus!`);
+        } else if (t1 === 'precision') {
+          G.aiDefMinus += 3;
+          log(`🔥 Combo de ${tagInfo.emoji} ${tagInfo.name}! Adversário defende com -3!`);
+        } else if (t1 === 'tempo') {
+          G.energy = Math.min(G.energy + 2, G.maxEnergy);
+          log(`🔥 Combo de ${tagInfo.emoji} ${tagInfo.name}! +2 Energia!`);
+        }
+      } else {
+        G.atkBoost += 2;
+        log('🔥 Sequência completa! +2 poder bônus!');
+      }
     }
   } else if (card.type !== 'service') {
     G.comboIdx = 0;
+    G.comboTags = [];
   }
 }

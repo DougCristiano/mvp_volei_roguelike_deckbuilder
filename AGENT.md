@@ -194,17 +194,17 @@ Tanto o jogador (`G.nextAttackBonus`) quanto a IA (`G.aiNextAtkBonus`) acumulam 
 | set3 | Levantamento de Costas | 1 | 0 | aiDefMinus2 |
 
 #### Ataque (5 cartas)
-| id | Nome | Custo | Poder | Bônus | outcomes (point/blocked/out/net) |
-|---|---|---|---|---|---|
-| atk1 | Cortada Diagonal | 2 | 6 | — | 50/15/25/10 |
-| atk2 | Ponta Aberta | 1 | 3 | — | 55/30/5/10 |
-| atk3 | Bola na Linha | 3 | 9 | — | 45/25/20/10 |
-| atk4 | Finta | 1 | 2 | aiDefMinus2 | 60/15/10/15 |
-| atk5 | Ataque Fundo | 2 | 5 | — | 40/10/35/15 |
+| id | Nome | Custo | Poder | Bônus |
+|---|---|---|---|---|
+| atk1 | Cortada Diagonal | 2 | 6 | — |
+| atk2 | Ponta Aberta | 1 | 3 | — |
+| atk3 | Bola na Linha | 3 | 9 | — |
+| atk4 | Finta | 1 | 2 | aiDefMinus2 |
+| atk5 | Ataque Fundo | 2 | 5 | — |
 
-> Note: `outcomes` are stored in card data but not currently consumed by combat resolution.
-> The gap-based defense quality system determines whether AI defends or not.
-> `outcomes` are reserved for a future "attack error" mechanic.
+> Resolvido (ver Histórico de Mudanças): o campo `outcomes` (point/blocked/out/net) foi removido
+> por ser dado morto — nunca era lido pela resolução de combate. Erro de ataque é `resolvePlayerAttack()`
+> (`combat.js`); bloqueio/defesa da IA seguem a lógica de gap-based defense quality normalmente.
 
 #### Bloqueio (3 cartas)
 | id | Nome | Custo | Poder | Bônus |
@@ -633,7 +633,7 @@ Toda mensagem embute `data.energy = G.energy` para sincronizar energia do remete
 | DT-06 | IA seleção aleatória simples | `ai.js:getAIPlay` | IA não considera histórico nem placar | Adicionar pesos por energia, placar, fase do jogo |
 | DT-07 | `renderLog` re-renderiza innerHTML completo | `render.js:renderLog` | Ineficiente; cintilação visual possível | Diff incremental ou só atualizar entradas novas |
 | DT-08 | Sem validação de ações multiplayer | `multiplayer.js` | Host controla placar autoritativo sem verificação | Aceitável para MVP; requer backend para produção |
-| DT-09 | `card.outcomes` não utilizado | `data.js`, `combat.js` | Probabilidades de ataque (blocked/out/net) definidas mas ignoradas | Implementar sistema de erros de ataque baseado em outcomes |
+| ~~DT-09~~ | ~~`card.outcomes` não utilizado~~ | — | Resolvido em [2026-07]: campo removido de `data.js` (dead data) | — |
 
 ---
 
@@ -783,8 +783,8 @@ Toda mensagem embute `data.energy = G.energy` para sincronizar energia do remete
   - Avançado (Lendário): 10% chance
   - Cartas já no deck são excluídas de seleção (sem duplicatas)
 - **Arquivos envolvidos**:
-  - `campaign.js` — `BASE_DECK_COPIES` (constante única para tamanho do deck); `selectRewardCards(count)` (seleção probabilística); `addCardToReward(cardId)` (adiciona ao deck)
-  - `deck.js` — usa `BASE_DECK_COPIES` como base (totalizando 14 cartas) + deckBias
+  - `campaign.js` — `BASE_DECK_CARDS` (lista curada de ids por tipo, garante cobertura de tags) + `BASE_DECK_COPIES` derivado; `selectRewardCards(count)` (seleção probabilística); `addCardToReward(cardId)` (adiciona ao deck)
+  - `deck.js` — usa `BASE_DECK_CARDS` como base (totalizando 15 cartas) + deckBias estendendo com cartas não-locked restantes
   - `campaign.html` — usa `BASE_DECK_COPIES` para preview (sem hardcoding)
   - `render.js` — `showRewards(cards)` renderiza overlay com 3 cards interativos
   - `index.html` — `#rewards-overlay` HTML element
@@ -872,5 +872,53 @@ Toda mensagem embute `data.energy = G.energy` para sincronizar energia do remete
   7. Descartar ambas
 - **drawPhaseOptions()**: coach aparece naturalmente como 1 das 3 opções (em vez de extra) porque filtra por `phases.includes(p)` e coach está em `phases`
 - **coachUsed flag**: setada ao jogar coach, resetada em startPoint(), impede coach de reaparecer no mesmo ponto
+
+### [2026-07-13] Sistema de combo por tags + rebalance de duplas + auditoria de probabilidade
+
+#### Adicionado
+- `data.js:CARD_TAGS` — 3 identidades (`power`⚡/`precision`🎯/`tempo`🔄) atribuídas a cartas de defense/setting/attack
+- Sistema de tag-combo em `input.js:updateCombo()` — completar defesa→levantamento→ataque com a mesma tag substitui o bônus genérico (+2 poder) por um payoff específico (power:+4 poder, precision:-3 def IA, tempo:+2 energia)
+- 3 cartas novas: `def9` (Recepção Perfeita, `energyRefund1`), `set5` (Levantamento Rasteiro, `costReduceNext1`), `blk5` (Bloqueio Antecipado, `costReduceNext1`)
+- `input.js:payCost()` — helper centralizado para consumir `G.costDiscount`
+- `.card-tag` badge visual na carta (render.js/style.css) mostrando o emoji da tag
+- `agents/` — pasta na raiz do projeto para relatórios de agentes de análise (auditorias, reviews). Primeiro documento: `agents/probability-audit.md`
+
+#### Alterado
+- Passiva **A Muralha**: bloqueio grátis (1×) + demais bloqueios -1 energia (`blockCostReduction`)
+- Passiva **A Fortaleza**: trocado `defenseRateBonus: 0.05` (quase irrelevante, maioria dos tiers já 95-100%) por `defGapBonus: 2` (desloca o gap antes do lookup de tier) + `defRateFloor: 0.10` (piso mínimo garantido quando o deslocamento de tier não ajuda)
+- `data.js:DEFENSE_QUALITY_RANGES` — `vantagem_defensiva`/`defesa_dominante` de 100% para 97% de sucesso (mantém tensão em late-game; auditoria apontou que gap≥+4 tornava a defesa matematicamente imune a variância)
+- `combat.js:resolvePlayerAttack()` — erro de ataque agora usa poder **total** (`pow`, com boosts) em vez do poder base da carta, consistente com a fórmula de erro de saque
+
+#### Removido
+- `card.outcomes` (point/blocked/out/net) de todas as cartas de ataque em `data.js` — dead data confirmado por auditoria (nunca lido pela resolução de combate ativa); ver DT-09 (resolvido)
+
+#### Contexto
+Um agente especialista em deckbuilders (Slay the Spire, Monster Train) apontou que o combo anterior (`COMBO_SEQ` fixo) disparava quase automaticamente sem decisão real do jogador, e que a passiva da Fortaleza era quase irrelevante. Um segundo agente auditou todos os pontos de `Math.random()` do jogo e confirmou o dado morto de `outcomes`, a inconsistência da fórmula de erro de ataque, e o "teto duro" de 100% de sucesso em gaps altos. Ambos os relatórios completos estão em `agents/`.
+
+---
+
+### [2026-07-13] Revisão final — correções de deck base, IA e limpeza
+
+#### Adicionado
+- `campaign.js:BASE_DECK_CARDS` — lista **curada** de cartas do deck base por tipo (3 de cada = 15 cartas), garantindo que as 3 rotas de tag-combo sejam alcançáveis desde o primeiro ponto (`BASE_DECK_COPIES` agora é derivado dela)
+- Testes novos em `tests/deck.test.js`: composição curada exata, cobertura de tags no deck base, deckBias sem cartas locked
+
+#### Corrigido
+- **Deck inicial sem combos** (crítico): `buildDeck()` pegava as N primeiras cartas de cada tipo — o deck base saía sem defense ⚡, sem setting 🎯/🔄 → nenhum tag-combo era fechável. Agora usa `BASE_DECK_CARDS`; slots de deckBias além da lista são preenchidos com as demais cartas não-locked do tipo
+- **IA nunca jogava levantamento**: filtro `c.power > 0` em `getAIPlay()` excluía todos os settings (power 0) → IA nunca ganhava atkBoost nem fechava combo. Agora settings são permitidos; na dificuldade 2 a IA valoriza settings pelo atkBoost; na dificuldade 0 pula o levantamento 50% das vezes (suavização)
+- **IA usava cartas bloqueadas**: `getAIPlay()`, `aiResolveBlock()` e `aiDefendAgainst()` não filtravam `locked:true` — na Final a IA sempre cortava com atk7 (poder 10) que o jogador nem desbloqueou. Filtro `!c.locked` adicionado nos 3 pontos
+- **IA fácil/média não era aleatória**: `getAIPlay()` retornava `possible[0]` determinístico (sempre a mesma carta), contrariando a própria doc. Agora sorteia de verdade nas dificuldades 0/1
+- **resolveDefense ignorava o desconto de energia**: check de custo `c.cost <= G.energy` não considerava `G.costDiscount` (canPlay considerava) → carta selecionável era silenciosamente ignorada na resolução (defesa 0). Agora usa custo efetivo
+- `tests/deck.test.js` estava obsoleto (esperava 42 cartas / 7 coach de uma versão antiga do buildDeck e nem injetava `BASE_DECK_COPIES` no ambiente Node)
+
+#### Removido
+- `game.js` — arquivo legado de ~1500 linhas, não carregado por nenhuma página desde a refatoração modular (histórico preservado no git)
+
+#### Alterado
+- Deck base: 14 → 15 cartas (setting 2 → 3 cópias, necessário para cobrir as 3 tags); com bias de dupla: 16 → 17
+- `CLAUDE.md` — contagem de módulos corrigida (12, incluindo progression.js na ordem de carga)
+- Relatório completo da revisão em `agents/final-review-2026-07-13.md`
+
+---
 
 *Documento gerado em 2026-06. Mantenha-o atualizado a cada tarefa relevante.*

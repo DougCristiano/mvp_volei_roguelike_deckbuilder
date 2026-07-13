@@ -8,6 +8,18 @@ const { CARDS_DB } = require('../data.js');
 global.CARDS_DB = CARDS_DB;
 global.log = jest.fn(); // silences log() calls inside deck functions
 
+// buildDeck reads these from campaign.js (browser global). Mirror the curated base deck here.
+global.BASE_DECK_CARDS = {
+  service: ['srv1', 'srv2', 'srv3'],
+  defense: ['def1', 'def3', 'def4'],
+  setting: ['set1', 'set3', 'set5'],
+  attack:  ['atk1', 'atk2', 'atk4'],
+  block:   ['blk1', 'blk2', 'blk3'],
+};
+global.BASE_DECK_COPIES = Object.fromEntries(
+  Object.entries(global.BASE_DECK_CARDS).map(([type, ids]) => [type, ids.length])
+);
+
 // Shared G factory — use this in beforeEach so each test gets a clean state.
 function makeG(overrides = {}) {
   return {
@@ -72,18 +84,45 @@ describe('shuffle', () => {
 describe('buildDeck', () => {
   beforeEach(() => { global.G = makeG(); });
 
-  test('produces exactly 42 cards', () => {
+  test('produces exactly 15 cards (base deck, no campaign bias)', () => {
     buildDeck();
-    expect(G.deck).toHaveLength(42);
+    expect(G.deck).toHaveLength(15);
   });
 
-  test('each of the 6 types appears exactly 7 times', () => {
+  test('each of the 5 playable types appears exactly 3 times (no coach in deck)', () => {
     buildDeck();
-    const types = ['service', 'setting', 'attack', 'defense', 'block', 'coach'];
-    types.forEach(t => {
-      const count = G.deck.filter(c => c.type === t).length;
-      expect(count).toBe(7);
+    ['service', 'setting', 'attack', 'defense', 'block'].forEach(t => {
+      expect(G.deck.filter(c => c.type === t).length).toBe(3);
     });
+    expect(G.deck.filter(c => c.type === 'coach').length).toBe(0);
+  });
+
+  test('base deck matches the curated BASE_DECK_CARDS lists exactly', () => {
+    buildDeck();
+    Object.entries(global.BASE_DECK_CARDS).forEach(([type, ids]) => {
+      const deckIds = G.deck.filter(c => c.type === type).map(c => c.id).sort();
+      expect(deckIds).toEqual([...ids].sort());
+    });
+  });
+
+  test('every tag-combo route is reachable in the base deck (defense/setting/attack cover all tags)', () => {
+    buildDeck();
+    ['power', 'precision', 'tempo'].forEach(tag => {
+      ['defense', 'setting', 'attack'].forEach(type => {
+        const has = G.deck.some(c => c.type === type && c.tag === tag);
+        expect(`${type}:${tag}:${has}`).toBe(`${type}:${tag}:true`);
+      });
+    });
+  });
+
+  test('campaign deckBias extends the specialty with remaining unlocked cards', () => {
+    global.G = makeG();
+    G.campaignTeam = 'meteoros';
+    global.CAMPAIGN_TEAMS = { meteoros: { deckBias: { attack: 5 } } };
+    buildDeck();
+    expect(G.deck.filter(c => c.type === 'attack').length).toBe(5);
+    expect(G.deck.filter(c => c.locked).length).toBe(0); // bias never pulls locked cards
+    delete global.CAMPAIGN_TEAMS;
   });
 
   test('all deck cards have valid types', () => {

@@ -8,24 +8,28 @@ const { CARDS_DB, PHASE_NAMES, COMBO_SEQ, DEFENSE_QUALITY_RANGES } =
 const VALID_TYPES  = ['service', 'defense', 'setting', 'attack', 'block', 'coach'];
 const VALID_LEVELS = ['basico', 'intermediario', 'avancado'];
 const VALID_PHASES = ['service', 'defense', 'setting', 'attack', 'block', 'coach'];
-const BONUS_VALUES = ['energy2', 'atkBoost3', 'atkBoost6', 'aiDefMinus2', 'draw1'];
+const VALID_TAGS   = ['power', 'precision', 'tempo'];
+const BONUS_VALUES = [
+  'energy2', 'atkBoost2', 'atkBoost3', 'atkBoost6', 'aiDefMinus1', 'aiDefMinus2', 'draw1',
+  'costReduceNext1', 'energyRefund1',
+];
 
 // ── CARDS_DB ─────────────────────────────────────────────────────────────────
 
 describe('CARDS_DB — size', () => {
-  test('has exactly 22 cards', () => {
-    expect(CARDS_DB).toHaveLength(22);
+  test('has exactly 33 cards', () => {
+    expect(CARDS_DB).toHaveLength(33);
   });
 
-  test('type distribution is 3-6-3-5-3-2 (srv-def-set-atk-blk-cch)', () => {
+  test('type distribution is 4-9-5-7-5-3 (srv-def-set-atk-blk-cch)', () => {
     const counts = {};
     CARDS_DB.forEach(c => { counts[c.type] = (counts[c.type] || 0) + 1; });
-    expect(counts.service).toBe(3);
-    expect(counts.defense).toBe(6);
-    expect(counts.setting).toBe(3);
-    expect(counts.attack).toBe(5);
-    expect(counts.block).toBe(3);
-    expect(counts.coach).toBe(2);
+    expect(counts.service).toBe(4);
+    expect(counts.defense).toBe(9);
+    expect(counts.setting).toBe(5);
+    expect(counts.attack).toBe(7);
+    expect(counts.block).toBe(5);
+    expect(counts.coach).toBe(3);
   });
 });
 
@@ -137,8 +141,8 @@ describe('DEFENSE_QUALITY_RANGES — values', () => {
     expect(DEFENSE_QUALITY_RANGES.ataque_dominante.successRate).toBe(0.00);
     expect(DEFENSE_QUALITY_RANGES.vantagem_ofensiva.successRate).toBe(0.25);
     expect(DEFENSE_QUALITY_RANGES.equilibrio.successRate).toBe(0.95);
-    expect(DEFENSE_QUALITY_RANGES.vantagem_defensiva.successRate).toBe(1.00);
-    expect(DEFENSE_QUALITY_RANGES.defesa_dominante.successRate).toBe(1.00);
+    expect(DEFENSE_QUALITY_RANGES.vantagem_defensiva.successRate).toBe(0.97);
+    expect(DEFENSE_QUALITY_RANGES.defesa_dominante.successRate).toBe(0.97);
   });
 
   test('nextAtkBonus values match GDD spec', () => {

@@ -12,7 +12,8 @@ bonus application, combo tracking. Enforces the 1-phase + 1-coach combo selectio
 | `playCard()` | Applies coach bonus, then plays phase card; routes by phase |
 | `rerollOption()` | Discards selected card, draws 1 replacement (costs 1 energy) |
 | `applyBonus(card)` | Applies `card.bonus` side effect to G |
-| `updateCombo(card)` | Advances or resets `G.comboIdx` based on card type |
+| `updateCombo(card)` | Advances or resets `G.comboIdx`/`G.comboTags`; resolves tag-combo payoff |
+| `payCost(cost)` | Consumes `G.costDiscount` against a cost, returns actual energy to spend |
 
 ---
 
@@ -33,6 +34,8 @@ bonus application, combo tracking. Enforces the 1-phase + 1-coach combo selectio
 | `G.nextAttackBonus` | ✓ | ✓ (consumed to 0 on attack) |
 | `G.aiDefMinus` | — | ✓ |
 | `G.comboIdx` | ✓ | ✓ |
+| `G.comboTags` | ✓ | ✓ (tags of defense/setting/attack cards played this rally) |
+| `G.costDiscount` | ✓ | ✓ (set by `costReduceNext1`, consumed by `payCost()`) |
 | `G.possession` | ✓ | — |
 | `G.campaignTeam` | ✓ | — |
 | `G.gameMode` | ✓ | — |
@@ -54,10 +57,13 @@ if (card.type === 'coach') {
   const selCost = G.selected.reduce((s, i) => s + (G.hand[i]?.cost || 0), 0);
   return card.cost + selCost <= G.energy;
 }
-// All other cards: use centralized phase list from deck.js
+// All other cards: use centralized phase list from deck.js.
+// effectiveCost previews the pending costReduceNext1 discount (G.costDiscount), if any.
 const phases = getCurrentValidPhases();
-return card.phases.some(p => phases.includes(p)) && card.cost <= G.energy;
+const effectiveCost = Math.max(0, card.cost - (G.costDiscount || 0));
+return card.phases.some(p => phases.includes(p)) && effectiveCost <= G.energy;
 ```
+Note: the coach branch does NOT apply `G.costDiscount` — the discount only ever benefits the phase card (or block/defense card) paid next, never a coach card.
 
 ## selectCard(idx) — selection rules
 ```
@@ -86,7 +92,7 @@ Select (new card):
    b. G.energy -= coach.cost
    c. applyBonus(coach)  ← energy2 restores BEFORE phase cost debit
    d. if coach.bonus === 'draw1': G.nextPhaseExtraCard = true
-6. G.energy -= phase.cost
+6. G.energy -= payCost(phase.cost)   ← consumes G.costDiscount if pending
 7. applyBonus(phase)
 8. log(...)
 9. updateCombo(phase)
@@ -129,16 +135,23 @@ ballSeq([
 | `draw1` | Log only (G.nextPhaseExtraCard set in playCard, not here) |
 | `aiDefMinus1` | `G.aiDefMinus += 1` |
 | `aiDefMinus2` | `G.aiDefMinus += 2` |
+| `costReduceNext1` | `G.costDiscount += 1` — discounts the next `payCost()` call by up to 1 |
+
+Note: `energyRefund1` is NOT handled here — it's conditional on the defense outcome and is resolved directly in `combat.js:resolveDefense()`.
 
 ---
 
-## updateCombo(card)
+## updateCombo(card) — combo tags (see docs/data.md "Card tags and the combo system")
 ```
 COMBO_SEQ = ['defense', 'setting', 'attack']
 - coach type → ignored (no break, no advance)
-- matches COMBO_SEQ[comboIdx] → comboIdx++; if comboIdx === 3 → COMBO! atkBoost += 2
-- non-matching, non-service → comboIdx = 0
+- matches COMBO_SEQ[comboIdx] → G.comboTags[comboIdx] = card.tag; comboIdx++
+  - if comboIdx === 3:
+    - all 3 tags equal → tag-specific payoff (power: +4 atkBoost / precision: +3 aiDefMinus / tempo: +2 energy)
+    - otherwise → generic fallback: atkBoost += 2
+- non-matching, non-service → comboIdx = 0; comboTags = []
 ```
+Note: `combat.js:resolveDefense()` also writes `G.comboIdx = 1` / `G.comboTags = [defTag]` directly when a defense card is resolved through the defense window (defense cards aren't played via `playCard()`).
 
 ---
 

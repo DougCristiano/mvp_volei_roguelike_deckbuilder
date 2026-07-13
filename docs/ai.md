@@ -48,14 +48,25 @@ const drawChances = [0.50, 0.30, 0.10];  // G.aiDifficulty: 0=easy, 1=medium, 2=
 - Higher difficulty → lower draw chance → AI keeps more energy
 - On "draw": spend 1 aiEnergy to pick a different card from remaining pool
 
-### getAIPlay() — card selection
+### getAIPlay() — card pool and selection
 ```js
-if (G.aiDifficulty === 2) {
-  possible.sort((a, b) => b.power - a.power); // Hard: always picks highest power
+// Pool (aiCardFilter): same rules for every phase
+//  - c.phases.includes(phase) && c.cost <= maxCost
+//  - !c.locked                  ← AI plays from the same pool as the player (no locked cards)
+//  - c.power > 0 OR phase === 'setting'  ← setting cards have power 0 by design (value = atkBoost)
+
+// Selection:
+if (difficulty === 2) {
+  possible.sort((a, b) => aiCardValue(b) - aiCardValue(a)); // Hard: strongest card
+  // aiCardValue: settings are valued by their atkBoost number, others by power
+  return possible[0];
 }
-const picked = possible[0]; // Easy/medium: random after sort
-// (For easy/medium, possible is shuffled before getAIPlay is called)
+return possible[random];  // Easy/medium: genuinely random pick
 ```
+
+### Easy AI softening
+At difficulty 0, the AI skips its setting play 50% of the time (no atkBoost that rally) —
+keeps the first campaign match gentle even though the AI knows how to set.
 
 ### Block chance (in combat.js:resolvePlayerAttack)
 ```js

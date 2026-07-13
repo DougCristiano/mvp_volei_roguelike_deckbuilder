@@ -55,7 +55,9 @@ G = {
 
   // === Combat bonuses ===
   comboIdx: 0|1|2|3,          // Position in COMBO_SEQ
+  comboTags: (string|null)[], // tag of each defense/setting/attack card played this rally (tag-combo detection)
   atkBoost: number,            // Cumulative setting bonus for next attack
+  costDiscount: number,        // Pending discount from costReduceNext1, consumed by input.js:payCost()
   nextAttackBonus: number,     // Defense quality carry-forward (player → player's next attack)
   aiNextAtkBonus: number,      // Defense quality carry-forward (AI → AI's next attack)
   aiDefMinus: number,          // Penalty on AI defense power (from aiDefMinus cards)
@@ -90,7 +92,7 @@ G = {
 ## startPoint() resets (every point)
 - `energy = maxEnergy`, `aiEnergy = maxAiEnergy`
 - `phase = 'service'`, `possession = nextServer`
-- `comboIdx`, `atkBoost`, `nextAttackBonus`, `aiNextAtkBonus`, `aiDefMinus` → 0
+- `comboIdx`, `comboTags` (→ `[]`), `atkBoost`, `costDiscount`, `nextAttackBonus`, `aiNextAtkBonus`, `aiDefMinus` → 0
 - `selected = []`, `defWindow = false`, `blockWindow = false`
 - `locked = false`, `pointDone = false`
 - `aiJustDefended = false`, `isDefendingServe = false`, `defenseQuality = null`

@@ -17,9 +17,23 @@ function aiTurn() {
     // Picks a card for the given phase. Draw chance and selection strategy scale with aiDifficulty.
     // difficulty 0 (easy): 50% draw chance, random pick
     // difficulty 1 (medium): 30% draw chance, random pick
-    // difficulty 2 (hard): 10% draw chance, picks highest-power card
+    // difficulty 2 (hard): 10% draw chance, picks strongest card (power, or atkBoost for settings)
+    // AI plays from the same card pool as the player: locked cards are excluded.
+    // Setting cards have power 0 by design — they're allowed (their value is the atkBoost bonus).
+    function aiCardFilter(phase, maxCost) {
+      return CARDS_DB.filter(c =>
+        c.phases.includes(phase) && c.cost <= maxCost && !c.locked &&
+        (c.power > 0 || phase === 'setting'));
+    }
+
+    // Sort value for hard difficulty: attack/defense by power, settings by their atkBoost.
+    function aiCardValue(c) {
+      if (c.bonus && c.bonus.startsWith('atkBoost')) return parseInt(c.bonus.replace('atkBoost', ''), 10);
+      return c.power;
+    }
+
     function getAIPlay(phase, maxCost) {
-      let possible = CARDS_DB.filter(c => c.phases.includes(phase) && c.cost <= maxCost && c.power > 0);
+      let possible = aiCardFilter(phase, maxCost);
       if (possible.length === 0) return { card: null, drew: false, drawCost: 0 };
 
       const difficulty  = (G && G.aiDifficulty !== undefined) ? G.aiDifficulty : 1;
@@ -32,13 +46,16 @@ function aiTurn() {
         drew = true;
         drawCost = 1;
         maxCost -= 1;
-        possible = CARDS_DB.filter(c => c.phases.includes(phase) && c.cost <= maxCost && c.power > 0);
+        possible = aiCardFilter(phase, maxCost);
         if (possible.length === 0) return { card: null, drew: true, drawCost: 1 };
       }
 
-      // Hard difficulty: always pick the strongest available card
-      if (difficulty === 2) possible.sort((a, b) => b.power - a.power);
-      return { card: possible[0], drew, drawCost };
+      // Hard difficulty: strongest card. Easy/medium: random pick (as documented).
+      if (difficulty === 2) {
+        possible.sort((a, b) => aiCardValue(b) - aiCardValue(a));
+        return { card: possible[0], drew, drawCost };
+      }
+      return { card: possible[Math.floor(Math.random() * possible.length)], drew, drawCost };
     }
 
     const targetPhase = (G.phase === 'service') ? 'service' : 'attack';
@@ -70,7 +87,10 @@ function aiTurn() {
         aiCards.push('(Já defendeu)');
       }
 
-      let setPlay = getAIPlay('setting', G.aiEnergy - aiCost);
+      // Easy AI (difficulty 0) skips the setting 50% of the time — softer offense for onboarding.
+      const skipSetting = (G.aiDifficulty === 0) && Math.random() < 0.5;
+      let setPlay = skipSetting ? { card: null, drew: false, drawCost: 0 }
+                                : getAIPlay('setting', G.aiEnergy - aiCost);
       if (setPlay.drew) { aiCost += setPlay.drawCost; aiCards.push('🃏 Comprou'); }
       if (setPlay.card) {
         aiCost += setPlay.card.cost;

@@ -3,14 +3,28 @@
 // Loaded in index.html (after data.js) and campaign.html.
 //
 // Deck design philosophy — "minimalista e crescimento durante a campanha":
-//   Base deck for ALL teams: 3 service + 3 defense + 2 setting + 3 attack + 3 block = 14 cartas
+//   Base deck for ALL teams: 3 service + 3 defense + 3 setting + 3 attack + 3 block = 15 cartas
 //   Each team shifts +2 to their specialty → specialty type gets 5 copies.
-//   Result: 16 cartas por dupla, sem Treinador no início (adicionados em Atos futuros).
+//   Result: 17 cartas por dupla, sem Treinador no início (adicionados em Atos futuros).
 //   Isso força escolhas de draw e cria tensão — você recicla o deck inteiro vários vezes por partida.
 //   Crescimento: a cada Ato (10-15 partidas), o jogador escolhe ~5 cartas para adicionar.
+//
+// BASE_DECK_CARDS é curado à mão para garantir que TODAS as 3 rotas de tag-combo
+// (⚡ potência / 🎯 precisão / 🔄 ritmo — ver CARD_TAGS em data.js) sejam alcançáveis
+// desde o primeiro ponto: cada tipo de defense/setting/attack cobre as 3 tags.
+// Não troque uma carta sem conferir que a cobertura de tags se mantém.
+const BASE_DECK_CARDS = {
+  service: ['srv1', 'srv2', 'srv3'],
+  defense: ['def1', 'def3', 'def4'],   // 🔄 tempo, 🎯 precisão, ⚡ potência
+  setting: ['set1', 'set3', 'set5'],   // ⚡ potência, 🎯 precisão, 🔄 tempo
+  attack:  ['atk1', 'atk2', 'atk4'],   // ⚡ potência, 🔄 tempo, 🎯 precisão
+  block:   ['blk1', 'blk2', 'blk3'],
+};
 
-// Single source of truth for base deck composition (used in campaign.html preview and deck.js buildDeck)
-const BASE_DECK_COPIES = { service: 3, defense: 3, setting: 2, attack: 3, block: 3 };
+// Derived copy counts — single source of truth for campaign.html preview and deck.js buildDeck.
+const BASE_DECK_COPIES = Object.fromEntries(
+  Object.entries(BASE_DECK_CARDS).map(([type, ids]) => [type, ids.length])
+);
 
 // Campaign 1: 3 fixed matches with escalating set disadvantage and AI difficulty
 const CAMPAIGN_MATCH_CONFIG = [
@@ -55,9 +69,9 @@ const CAMPAIGN_TEAMS = {
     colorAccent: '#93C5FD',
     stats:   { atk: 2, def: 3, blk: 5 },
     deckBias:    { block: 5 },
-    passive:     'Primeiro bloqueio de cada ponto custa 0 energia.',
-    passiveDesc: 'Uma vez por ponto, a dupla sobe no bloqueio sem gastar energia — reflexo puro de quem vive na rede.',
-    passives:    { freeBlock: true },
+    passive:     'Primeiro bloqueio de cada ponto é grátis; os demais custam -1 energia.',
+    passiveDesc: 'Vivem na rede: o primeiro bloqueio do ponto não custa nada, e todo bloqueio seguinte sai mais barato.',
+    passives:    { freeBlock: true, blockCostReduction: 1 },
     specialBadge: 'BLOQUEIO',
   },
 
@@ -75,9 +89,9 @@ const CAMPAIGN_TEAMS = {
     colorAccent: '#86EFAC',
     stats:   { atk: 3, def: 5, blk: 2 },
     deckBias:    { defense: 5 },
-    passive:     'Taxa de sucesso de defesa +5% em todos os tiers.',
-    passiveDesc: 'Anos de treino em recepção fazem cada defesa ser um pouco mais sólida — até as mais difíceis têm mais chance.',
-    passives:    { defenseRateBonus: 0.05 },
+    passive:     '+2 no gap de defesa; +10% de sucesso garantido quando o gap não for suficiente.',
+    passiveDesc: 'Leitura de jogo apurada: sua defesa soma +2 no confronto direto contra o ataque adversário, empurrando o resultado para um tier melhor — e mesmo quando isso não basta, ainda garante uma chance extra de sucesso.',
+    passives:    { defGapBonus: 2, defRateFloor: 0.10 },
     specialBadge: 'DEFESA',
   },
 };

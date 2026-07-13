@@ -8,7 +8,7 @@ Called after every G change via `render()`.
 | Function | Description |
 |---|---|
 | `render()` | Master call — calls all sub-renderers + moveBall |
-| `renderHand()` | Renders card elements in `#hand-cards` |
+| `renderHand()` | Renders card elements in `#hand-cards` (includes `.card-tag` emoji badge from `CARD_TAGS` when `card.tag` is set) |
 | `renderResolve()` | Shows/hides `#resolve-panel` with live atk/def power values |
 | `renderActions()` | Enables/disables all action buttons based on G state |
 | `renderOffensePreview()` | Shows `#offense-preview` badge with predicted attack power (base+atkBoost+nextAttackBonus+teamBonus) and accumulated `aiDefMinus`, during setting/attack phases |

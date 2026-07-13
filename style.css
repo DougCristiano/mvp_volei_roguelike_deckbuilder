@@ -85,6 +85,7 @@ body{font-family:system-ui,sans-serif;background:var(--sky);min-height:100vh;col
 #offense-preview .op-atk{color:var(--coral);font-weight:700;background:rgba(216,90,48,0.1);padding:3px 10px;border-radius:20px;}
 #offense-preview .op-atk b{font-size:15px;}
 #offense-preview .op-def{color:var(--sky);font-weight:700;background:rgba(42,111,168,0.1);padding:3px 10px;border-radius:20px;}
+#offense-preview .op-discount{color:var(--teal);font-weight:700;background:rgba(29,158,117,0.1);padding:3px 10px;border-radius:20px;}
 
 @keyframes energyPulse{
   0%,100%{transform:scale(1);}
@@ -123,6 +124,7 @@ body{font-family:system-ui,sans-serif;background:var(--sky);min-height:100vh;col
 .card-power{font-family:'Arial Black',monospace;font-size:20px;font-weight:900;color:var(--text-dark);text-shadow:0 2px 4px rgba(0,0,0,0.1);margin:2px 0;}
 .card-cost{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--energy-gold) 0%,#C4901A 100%);color:#1a1000;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;font-family:monospace;box-shadow:0 3px 8px rgba(212,160,23,0.4);border:2px solid rgba(255,255,255,0.6);transition:transform 0.2s;}
 .card:hover .card-cost{transform:scale(1.1);}
+.card-tag{position:absolute;top:5px;left:5px;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;}
 .card-desc{font-size:9px;color:var(--text-light);line-height:1.4;margin-top:3px;font-style:italic;opacity:0.9;}
 #timer-wrapper{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
 #timer-bar-wrap{flex:1;height:6px;background:var(--sand-dark);border-radius:3px;overflow:hidden;}

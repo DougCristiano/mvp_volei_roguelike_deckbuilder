@@ -6,7 +6,8 @@ function buildDeck() {
   let pool = [];
   const types = ['service', 'defense', 'setting', 'attack', 'block'];
 
-  // Base from BASE_DECK_COPIES (defined in campaign.js). Campaign teams shift +2 to their specialty.
+  // Base from BASE_DECK_CARDS (curated in campaign.js — guarantees tag-combo coverage).
+  // Campaign teams shift +2 to their specialty via deckBias.
   const copies = { ...BASE_DECK_COPIES };
   if (G.campaignTeam && typeof CAMPAIGN_TEAMS !== 'undefined') {
     const bias = CAMPAIGN_TEAMS[G.campaignTeam]?.deckBias;
@@ -14,9 +15,14 @@ function buildDeck() {
   }
 
   types.forEach(t => {
-    const typeCards = CARDS_DB.filter(c => c.type === t && !c.locked);
     const n = copies[t] ?? 3;
-    for (let i = 0; i < n; i++) pool.push({ ...typeCards[i % typeCards.length] });
+    // Curated base list first; bias slots beyond it are filled with the remaining
+    // unlocked cards of the type (CARDS_DB order), wrapping into duplicates if short.
+    const baseIds  = BASE_DECK_CARDS[t] || [];
+    const curated  = baseIds.map(id => CARDS_DB.find(c => c.id === id)).filter(Boolean);
+    const rest     = CARDS_DB.filter(c => c.type === t && !c.locked && !baseIds.includes(c.id));
+    const ordered  = [...curated, ...rest];
+    for (let i = 0; i < n; i++) pool.push({ ...ordered[i % ordered.length] });
   });
   G.deck = shuffle(pool);
 }

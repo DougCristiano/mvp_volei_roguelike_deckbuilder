@@ -44,7 +44,9 @@ player vs AI attack/defense, scoring, set/match end. Also owns timers and freeba
 | `G.aiNextAtkBonus` | ✓ | ✓ |
 | `G.nextAttackBonus` | ✓ | ✓ |
 | `G.nextServer` | ✓ | ✓ |
-| `G.comboIdx` | — | ✓ (reset on freeball) |
+| `G.comboIdx` | — | ✓ (set to 1 in resolveDefense; reset on freeball) |
+| `G.comboTags` | — | ✓ (seeded with defense card's tag in resolveDefense) |
+| `G.costDiscount` | ✓ | ✓ (consumed via `payCost()` in resolveDefense/resolveBlock) |
 | `G.aiJustDefended` | ✓ | ✓ |
 | `G.isDefendingServe` | — | ✓ |
 | `G.defenseQuality` | — | ✓ |
@@ -73,8 +75,8 @@ Carry: G.nextAttackBonus (player) or G.aiNextAtkBonus (AI) = tier.nextAtkBonus
 | `ataque_dominante` | ≤ -7 | 0% | -2 |
 | `vantagem_ofensiva` | -6 to -4 | 25% | -1 |
 | `equilibrio` | -3 to +3 | 95% | 0 |
-| `vantagem_defensiva` | +4 to +6 | 100% | +2 |
-| `defesa_dominante` | ≥ +7 | 100% | +4 |
+| `vantagem_defensiva` | +4 to +6 | 97% | +2 |
+| `defesa_dominante` | ≥ +7 | 97% | +4 |
 
 ---
 
@@ -82,12 +84,15 @@ Carry: G.nextAttackBonus (player) or G.aiNextAtkBonus (AI) = tier.nextAtkBonus
 ```
 1. Loop selected: process coach cards first
    - G.coachUsed = true
-   - G.energy -= coach.cost
+   - G.energy -= payCost(coach.cost)
    - applyBonus(coach)   ← energy restored BEFORE defense cards deducted
    - if draw1: G.nextPhaseExtraCard = true
 2. Loop selected: process defense cards (type !== 'coach')
    - defPow += card.power
-   - G.energy -= card.cost
+   - G.energy -= payCost(card.cost)
+   - applyBonus(card)    ← fixed: previously only coach cards got this call, so def3/def8's energy2 never fired
+   - G.comboTags = [card.tag]; G.comboIdx = 1
+   - if card.bonus === 'energyRefund1': tracked for the success branch (see below)
 ```
 
 ## Coach handling in resolveBlock()
@@ -95,8 +100,8 @@ Carry: G.nextAttackBonus (player) or G.aiNextAtkBonus (AI) = tier.nextAtkBonus
 blockIdx = G.selected.find(i => G.hand[i].type !== 'coach')
 coachIdx = G.selected.find(i => G.hand[i].type === 'coach')
 if coachIdx exists:
-  G.coachUsed = true; G.energy -= coach.cost; applyBonus(coach)
-Then resolve block with blockCard
+  G.coachUsed = true; G.energy -= payCost(coach.cost); applyBonus(coach)
+Then resolve block with blockCard: G.energy -= payCost(blockCost); applyBonus(blockCard)
 ```
 
 ---
@@ -109,9 +114,7 @@ Then resolve block with blockCard
 | < 0.70 | 30% | Soften (attack halved → defense window) |
 | else | 30% | Continue (rally, AI attacks) |
 
-**A Muralha passive**: if `G.campaignTeam === 'muralha' && !G.freeBlockUsed`:
-- Block costs 0 energy
-- `G.freeBlockUsed = true` after
+**A Muralha passive**: if `!G.freeBlockUsed`, first block of the point costs 0 (`G.freeBlockUsed = true` after). Every subsequent block costs `-team.passives.blockCostReduction` (currently 1, min 0).
 
 ## Block probabilities — AI's block (aiResolveBlock)
 | Roll | Probability | Outcome |
@@ -125,6 +128,8 @@ Then resolve block with blockCard
 const blockChances = [0.30, 0.50, 0.70];  // indexed by G.aiDifficulty
 const aiWillBlock = Math.random() < blockChances[G.aiDifficulty ?? 1];
 ```
+AI card pools in `aiResolveBlock()`/`aiDefendAgainst()` exclude `locked: true` cards —
+the AI plays from the same pool as the player.
 
 ---
 
@@ -132,25 +137,39 @@ const aiWillBlock = Math.random() < blockChances[G.aiDifficulty ?? 1];
 Passives are read from `CAMPAIGN_TEAMS[team].passives` — no hardcoded team IDs in combat.js.
 
 ```js
-// A Muralha — freeBlock
+// A Muralha — freeBlock (first use) + blockCostReduction (every use after)
 const team = getCampaignTeam();
 if (team?.passives?.freeBlock && !G.freeBlockUsed) { blockCost = 0; G.freeBlockUsed = true; }
+else if (team?.passives?.blockCostReduction) { blockCost = Math.max(0, blockCost - team.passives.blockCostReduction); }
 
-// A Fortaleza — defenseRateBonus
-const defBonus = team?.passives?.defenseRateBonus ?? 0;
-successRate = Math.min(1.0, quality.successRate + defBonus);
+// A Fortaleza — defGapBonus (structural: added directly to the gap before tier lookup)
+//            + defRateFloor (guaranteed minimum successRate bump when the gap shift alone
+//              doesn't already land in equilibrio/vantagem_defensiva/defesa_dominante)
+const defGapBonus = team?.passives?.defGapBonus ?? 0;
+const gap = defPow - G.aiAtkPow + defGapBonus;
+const rateFloor = team?.passives?.defRateFloor ?? 0;
+if (rateFloor > 0 && quality.successRate < 0.95) successRate = Math.min(1.0, quality.successRate + rateFloor);
 ```
 
 To add a new passive that affects combat, add the key to the team's `passives` object in `campaign.js` and read it here via `getCampaignTeam()?.passives?.newKey`.
+
+## Cost payment and discounts (`payCost()`)
+Every energy deduction in `resolveDefense()`/`resolveBlock()` goes through `payCost(cost)` (defined in `input.js`), which consumes any pending `G.costDiscount` set by the `costReduceNext1` bonus (`set5`, `blk5` in `data.js`).
+
+## energyRefund1 (def9 "Recepção Perfeita")
+In `resolveDefense()`'s success branch: if the resolved defense card had `bonus === 'energyRefund1'` and `quality.quality` is `vantagem_defensiva` or `defesa_dominante`, refund 1 energy (capped at `G.maxEnergy`).
 
 ---
 
 ## Attack error — player (resolvePlayerAttack)
 ```
-errorChance = 0.05 + (card.power × 0.02)
+errorChance = 0.05 + (pow × 0.02)   // pow = TOTAL power (base + atkBoost + nextAttackBonus + team bonus)
 If triggered → attack goes out → point to AI
-Example: power 9 card → 5% + 18% = 23% error
+Example: base power 6 card boosted to 12 total → 5% + 24% = 29% error
 ```
+Note: prior to 2026-07-13 this used `attackCard.power` (base card power only), so boosted attacks
+carried the same error chance as unboosted ones. Fixed to use `pow` (the total actually resolved),
+consistent with the service error formula in `input.js`/`ai.js` (which already uses total power played).
 
 ---
 

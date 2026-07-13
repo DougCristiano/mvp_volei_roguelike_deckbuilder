@@ -43,30 +43,32 @@ npm test -- --coverage  # Coverage report
 
 ---
 
-## Architecture: 10 Core Modules
+## Architecture: 12 Core Modules
 
-The game loads 11 JS files in strict order (see `index.html` tail). **Load order matters** — each module depends on globals defined by previous modules:
+The game loads 12 JS files in strict order (see `index.html` tail). **Load order matters** — each module depends on globals defined by previous modules:
 
 ```
-1. data.js              — Card database (CARDS_DB), phase names, defense quality tiers, combo sequence
-2. campaign.js          — Campaign teams (CAMPAIGN_TEAMS), deck config, reward selection, match progression
-3. audio.js             — Web Audio API sound effects (sounds.*)
-4. state.js             — Game state G, newGame(), startPoint(), startNextCampaignMatch()
-5. deck.js              — Deck management: buildDeck(), resetDeck(), drawPhaseOptions(), shuffle()
-6. render.js            — DOM rendering: render(), showRewards(), showEnd(), UI updates
-7. input.js             — Player input: selectCard(), playCard(), rerollOption(), bonus application
-8. combat.js            — Rally resolution: resolveDefense(), resolveBlock(), resolvePlayerAttack(), checkSet()
-9. ai.js                — AI decision-making: aiTurn(), getAIPlay()
-10. multiplayer.js      — PeerJS networking: sendData(), setupConnectionHandlers()
-11. main.js             — Menu, event listeners, game loop wiring
+1. data.js              — Card database (CARDS_DB), card tags (CARD_TAGS), phase names, defense quality tiers, combo sequence
+2. campaign.js          — Campaign teams (CAMPAIGN_TEAMS), base deck (BASE_DECK_CARDS), reward selection, match progression
+3. progression.js       — Persistent XP per category and card unlocks (localStorage)
+4. audio.js             — Web Audio API sound effects (sounds.*)
+5. state.js             — Game state G, newGame(), startPoint(), startNextCampaignMatch()
+6. deck.js              — Deck management: buildDeck(), resetDeck(), drawPhaseOptions(), shuffle()
+7. render.js            — DOM rendering: render(), showRewards(), showEnd(), UI updates
+8. input.js             — Player input: selectCard(), playCard(), rerollOption(), bonus application
+9. combat.js            — Rally resolution: resolveDefense(), resolveBlock(), resolvePlayerAttack(), checkSet()
+10. ai.js               — AI decision-making: aiTurn(), getAIPlay()
+11. multiplayer.js      — PeerJS networking: sendData(), setupConnectionHandlers()
+12. main.js             — Menu, event listeners, game loop wiring
 ```
 
 ### Key Module Responsibilities
 
 | Module | Owns | Depends On |
 |---|---|---|
-| **data.js** | Card definitions, combat tiers, game constants | None |
-| **campaign.js** | Campaign progression config (3 matches), team data, reward weights | data.js |
+| **data.js** | Card definitions, card tags, combat tiers, game constants | None |
+| **campaign.js** | Campaign progression config (3 matches), team data, base deck lists, reward weights | data.js |
+| **progression.js** | Persistent XP + card unlocks (localStorage, no G dependency) | data.js, campaign.js |
 | **state.js** | Global G object, match initialization, point resets | campaign.js, deck.js |
 | **combat.js** | Rally outcome logic, gap-based defense quality, block resolution | data.js, state.js |
 | **ai.js** | AI play selection and behavior scaling | data.js, state.js, deck.js, combat.js |
@@ -199,6 +201,7 @@ Peers establish a DataConnection and exchange packets:
 | Task | Read first |
 |---|---|
 | Changing card data / adding cards | `docs/data.md` |
+| Card system overview (combos, unlocks, design) | `CARTAS.md` |
 | Changing selection or play logic | `docs/input.md` |
 | Changing combat resolution / scoring | `docs/combat.md` |
 | Changing deck draw / shuffle | `docs/deck.md` |
