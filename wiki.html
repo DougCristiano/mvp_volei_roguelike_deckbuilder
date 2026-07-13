@@ -491,7 +491,7 @@
 <!-- ── CARDS ────────────────────────────────────────────────────────── -->
 <div id="cards" class="wiki-panel">
   <h2>🎴 Banco de Dados de Cartas</h2>
-  <p>ASCENSION tem 22 cartas implementadas e um catálogo de design de 120 cartas planejadas.</p>
+  <p>ASCENSION tem <strong>33 cartas implementadas</strong> (25 + 8 desbloqueáveis por XP) e um catálogo de design de 120 cartas planejadas para futuras expansões.</p>
 
   <div class="wiki-filters">
     <input type="search" id="wiki-search" placeholder="🔍 Buscar carta por nome...">
@@ -512,9 +512,91 @@
   <h3>Legenda</h3>
   <p>
     <strong>Poder:</strong> valor base que entra no cálculo de gap<br>
-    <strong>Nível:</strong> Básico (inicio) / Intermediário (mid) / Avançado (endgame)<br>
-    <strong>Bônus:</strong> efeito especial quando a carta é jogada
+    <strong>Nível:</strong> 🟢 Básico (início) / 🟡 Intermediário (mid) / 🔴 Avançado (endgame)<br>
+    <strong>Bônus:</strong> efeito especial quando a carta é jogada<br>
+    <strong>Tag:</strong> identidade de combo (⚡ Potência / 🎯 Precisão / 🔄 Ritmo) — só em defesa/levantamento/ataque
   </p>
+
+  <h3>🏷️ Sistema de Tags e Combos</h3>
+  <p>Cada carta de <strong>defesa, levantamento e ataque</strong> tem uma tag que representa sua identidade:</p>
+
+  <div style="margin: 12px 0;">
+    <div style="background:var(--card-bg); border-left:4px solid #3b82f6; padding:12px; margin:8px 0; border-radius:4px;">
+      <strong>⚡ Combo de Potência</strong><br>
+      Jogue defesa ⚡ → levantamento ⚡ → ataque ⚡: <strong>+4 poder no ataque</strong> (em vez de +2)
+    </div>
+    <div style="background:var(--card-bg); border-left:4px solid #f59e0b; padding:12px; margin:8px 0; border-radius:4px;">
+      <strong>🎯 Combo de Precisão</strong><br>
+      Jogue defesa 🎯 → levantamento 🎯 → ataque 🎯: adversário defende com <strong>-3 adicional</strong> (acumula com débuffs)
+    </div>
+    <div style="background:var(--card-bg); border-left:4px solid #10b981; padding:12px; margin:8px 0; border-radius:4px;">
+      <strong>🔄 Combo de Ritmo</strong><br>
+      Jogue defesa 🔄 → levantamento 🔄 → ataque 🔄: devolve <strong>+2 Energia</strong> ao fechar o ataque
+    </div>
+  </div>
+
+  <p><strong>Combo genérico:</strong> Jogar qualquer defesa → levantamento → ataque na mesma rally sempre dá <strong>+2 poder</strong> no ataque, independente das tags.</p>
+
+  <h3>💎 Como Ganhar Cartas</h3>
+  <h4>Deck Base (15 cartas)</h4>
+  <p>Todas as duplas começam com a mesma base de 15 cartas, curada para garantir que as 3 rotas de tag-combo existem desde o primeiro ponto:</p>
+  <ul style="margin-left:20px; margin-top:8px;">
+    <li><strong>Saque:</strong> Saque Flutuante, Saque Potente, Saque Tático</li>
+    <li><strong>Defesa:</strong> Manchete Firme (🔄), Leitura de Jogo (🎯), Posicionamento Perfeito (⚡)</li>
+    <li><strong>Levantamento:</strong> Lev. Alto (⚡), Lev. de Costas (🎯), Lev. Rasteiro (🔄)</li>
+    <li><strong>Ataque:</strong> Cortada Diagonal (⚡), Ponta Aberta (🔄), Finta (🎯)</li>
+    <li><strong>Bloqueio:</strong> Bloqueio Simples, Paredão, Leitura de Bloqueio</li>
+  </ul>
+
+  <h4>Bônus de Dupla (+2 cartas)</h4>
+  <p>Sua dupla adiciona 2 cartas extras da sua especialidade:</p>
+  <ul style="margin-left:20px; margin-top:8px;">
+    <li><strong>Os Meteoros (⚡):</strong> Bola na Linha, Ataque Fundo</li>
+    <li><strong>A Muralha (🧱):</strong> Bloqueio Antecipado + 1 repetida</li>
+    <li><strong>A Fortaleza (🛡️):</strong> Mergulho, Defesa de Manchete</li>
+  </ul>
+
+  <h4>Recompensas de Vitória</h4>
+  <p>Ao vencer cada partida da campanha, escolha 1 de 3 cartas para adicionar ao seu deck. Cartas desbloqueadas aparecem com <strong>prioridade garantida</strong>.</p>
+
+  <h4>Desbloqueio por XP</h4>
+  <p>Ganhe XP em cada categoria ao jogar. Quando acumula XP suficiente, desbloqueia uma carta nova que entra nas recompensas (com prioridade):</p>
+  <table style="font-size:12px;">
+    <tr><th>Carta</th><th>Custo XP</th></tr>
+    <tr><td>Saque Viagem (🟡)</td><td>120 XP Saque</td></tr>
+    <tr><td>Defesa Raspando (🟡)</td><td>120 XP Defesa</td></tr>
+    <tr><td>Interceptação (🔴)</td><td>250 XP Defesa</td></tr>
+    <tr><td>Tabela de Braço (🟡)</td><td>120 XP Levantamento</td></tr>
+    <tr><td>Cortada Cruzada (🟡)</td><td>120 XP Ataque</td></tr>
+    <tr><td>Ataque Pipe (🔴)</td><td>250 XP Ataque</td></tr>
+    <tr><td>Duplo Bloqueio (🟡)</td><td>120 XP Bloqueio</td></tr>
+    <tr><td>Estratégia do Técnico (🔴)</td><td>150 XP Técnico</td></tr>
+  </table>
+
+  <h4>Troca em Jogo</h4>
+  <p>Durante qualquer fase, selecione 1 carta e clique <strong>"Trocar (1⚡)"</strong> para descartar e comprar outra opção válida (custa 1 energia).</p>
+
+  <h3>📊 Tipos de Cartas</h3>
+  <p><strong>🏐 Saque:</strong> Abre o rally. Erro escala: 5% + poder×3%. Nenhuma tem tag.</p>
+  <p><strong>🛡️ Defesa:</strong> Primeira defesa da sua dupla (depois pode repetir). Tag define combo e bônus especial (energyRefund1).</p>
+  <p><strong>🤲 Levantamento:</strong> Prepara o ataque. Power é sempre 0; valor vem do bônus (atkBoost). costReduceNext1 desconta a próxima carta.</p>
+  <p><strong>⚡ Ataque:</strong> Encerra a sequência. Erro escala: 5% + poder total×2% (turbinado é mais arriscado).</p>
+  <p><strong>🧱 Bloqueio:</strong> Tenta parar ataque adversário. 20% ponto / 20% fora / 30% amortece / 30% rally continua.</p>
+  <p><strong>📋 Treinador:</strong> Bônus imediato (energia, débuff, draw). 1 uso por ponto, jogado junto com outra carta (nunca sozinho).</p>
+
+  <h3>🎁 Bônus Especiais</h3>
+  <table style="font-size:12px;">
+    <tr><th>Bônus</th><th>Efeito</th><th>Cartas</th></tr>
+    <tr><td>energy2</td><td>+2 Energia imediato</td><td>Leitura de Jogo, Interceptação, Foco do Técnico</td></tr>
+    <tr><td>energyRefund1</td><td>+1⚡ se defesa sair Vantagem Defensiva+</td><td>Recepção Perfeita</td></tr>
+    <tr><td>atkBoost3/6</td><td>+3/+6 poder no próximo ataque</td><td>Lev. Alto, Lev. Rápido, Tabela de Braço, Estratégia do Técnico</td></tr>
+    <tr><td>aiDefMinus2</td><td>Adversário defende com -2</td><td>Lev. de Costas, Finta</td></tr>
+    <tr><td>costReduceNext1</td><td>Próxima carta custa -1⚡ (mín. 0)</td><td>Lev. Rasteiro, Bloqueio Antecipado</td></tr>
+    <tr><td>draw1</td><td>+1 opção extra de carta</td><td>Chamada do Técnico</td></tr>
+  </table>
+
+  <h3>💡 Dica Estratégica</h3>
+  <p>A <strong>rota 🔄 de Ritmo</strong> (Manchete Firme → Lev. Rasteiro → Ponta Aberta) custa só 1⚡ total e devolve +2⚡ — você <em>lucra</em> energia! Perfeita para rallies longos mesmo com ataque fraco.</p>
 </div>
 
 <!-- ── ARCHETYPES ────────────────────────────────────────────────────── -->
