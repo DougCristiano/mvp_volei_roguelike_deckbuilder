@@ -7,6 +7,7 @@
 const mainMenu          = document.getElementById('main-menu-overlay');
 const mainMenuButtons   = document.getElementById('main-menu-buttons');
 const gameModeSubmenu   = document.getElementById('game-mode-submenu');
+const jogarOptions      = document.getElementById('jogar-options');
 const multiplayerSetupUI = document.getElementById('multiplayer-setup');
 const appUI             = document.getElementById('app');
 const btnPlayGame       = document.getElementById('btn-play-game');
@@ -45,6 +46,7 @@ function showMainMenu() {
   // Reset menu state
   mainMenuButtons.style.display     = 'flex';
   gameModeSubmenu.style.display     = 'none';
+  jogarOptions.style.display        = '';
   btnStartMultiplayer.textContent   = '🌐 Multiplayer (Online)';
   btnStartMultiplayer.disabled      = false;
   multiplayerSetupUI.style.display  = 'none';
@@ -102,8 +104,13 @@ btnPlayGame.addEventListener('click', () => {
 });
 
 btnBackToMenu.addEventListener('click', () => {
-  mainMenuButtons.style.display = 'flex';
-  gameModeSubmenu.style.display = 'none';
+  mainMenuButtons.style.display    = 'flex';
+  gameModeSubmenu.style.display    = 'none';
+  // Reset multiplayer sub-state in case the player was mid-setup
+  jogarOptions.style.display       = '';
+  btnStartMultiplayer.textContent  = '🌐 Multiplayer (Online)';
+  btnStartMultiplayer.disabled     = false;
+  multiplayerSetupUI.style.display = 'none';
 });
 
 btnStartQuickGame.addEventListener('click', () => {
@@ -116,8 +123,7 @@ btnStartQuickGame.addEventListener('click', () => {
 });
 
 btnStartMultiplayer.addEventListener('click', () => {
-  mainMenuButtons.style.display    = 'none';
-  gameModeSubmenu.style.display    = 'none';
+  jogarOptions.style.display       = 'none';
   btnStartMultiplayer.textContent  = 'Criando Sala...';
   btnStartMultiplayer.disabled     = true;
   connectionStatus.textContent     = 'Aguardando conexão com o servidor...';
