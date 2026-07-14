@@ -183,7 +183,6 @@
     <!-- Main menu buttons -->
     <div id="main-menu-buttons">
       <button class="btn btn-primary" id="btn-play-game">▶️ Jogar</button>
-      <button class="btn btn-secondary" id="btn-start-multiplayer">🌐 Multiplayer (Online)</button>
       <a href="catalog.html" class="btn btn-secondary" id="btn-catalog" style="text-decoration:none;display:block;text-align:center;">📋 Ver Coleção de Cartas</a>
       <a href="wiki.html" class="btn btn-secondary" id="btn-wiki" style="text-decoration:none;display:block;text-align:center;">📚 Wiki & Guia</a>
     </div>
@@ -192,35 +191,41 @@
     <div id="game-mode-submenu" style="display:none;">
       <button class="btn btn-back" id="btn-back-to-menu">← Voltar</button>
 
-      <div id="quick-game-section">
-        <h3 class="submenu-title">Partida Rápida</h3>
-        <div class="difficulty-selector">
-          <label>
-            <input type="radio" name="difficulty" value="0"> 🟢 Fácil
-          </label>
-          <label>
-            <input type="radio" name="difficulty" value="1" checked> 🟡 Médio
-          </label>
-          <label>
-            <input type="radio" name="difficulty" value="2"> 🔴 Difícil
-          </label>
+      <div id="jogar-options">
+        <div id="quick-game-section">
+          <h3 class="submenu-title">Partida Rápida</h3>
+          <div class="difficulty-selector">
+            <label>
+              <input type="radio" name="difficulty" value="0"> 🟢 Fácil
+            </label>
+            <label>
+              <input type="radio" name="difficulty" value="1" checked> 🟡 Médio
+            </label>
+            <label>
+              <input type="radio" name="difficulty" value="2"> 🔴 Difícil
+            </label>
+          </div>
+          <button class="btn btn-primary" id="btn-start-quick-game" style="width:100%;margin-top:12px;">Começar Partida</button>
         </div>
-        <button class="btn btn-primary" id="btn-start-quick-game" style="width:100%;margin-top:12px;">Começar Partida</button>
+
+        <div class="submenu-divider"></div>
+
+        <a href="campaign.html" class="btn btn-primary" id="btn-campaign" style="text-decoration:none;display:block;text-align:center;">🏆 Modo Campanha</a>
+
+        <div class="submenu-divider"></div>
+
+        <button class="btn btn-secondary" id="btn-start-multiplayer">🌐 Multiplayer (Online)</button>
       </div>
 
-      <div class="submenu-divider"></div>
-
-      <a href="campaign.html" class="btn btn-primary" id="btn-campaign" style="text-decoration:none;display:block;text-align:center;margin-top:12px;">🏆 Modo Campanha</a>
-    </div>
-
-    <!-- Multiplayer setup -->
-    <div id="multiplayer-setup" style="display:none;">
-      <p>Seu ID de Jogador:</p>
-      <div id="player-id-display" title="Clique para copiar">Carregando...</div>
-      <p>Para jogar, crie uma sala e compartilhe seu ID, ou insira o ID de um amigo e conecte-se.</p>
-      <input type="text" id="peer-id-input" placeholder="Insira o ID do amigo">
-      <button class="btn btn-secondary" id="btn-connect-room">Conectar</button>
-      <p id="connection-status"></p>
+      <!-- Multiplayer setup -->
+      <div id="multiplayer-setup" style="display:none;">
+        <p>Seu ID de Jogador:</p>
+        <div id="player-id-display" title="Clique para copiar">Carregando...</div>
+        <p>Para jogar, crie uma sala e compartilhe seu ID, ou insira o ID de um amigo e conecte-se.</p>
+        <input type="text" id="peer-id-input" placeholder="Insira o ID do amigo">
+        <button class="btn btn-secondary" id="btn-connect-room">Conectar</button>
+        <p id="connection-status"></p>
+      </div>
     </div>
   </div>
 </div>
