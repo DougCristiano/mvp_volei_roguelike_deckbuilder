@@ -200,6 +200,19 @@ body{font-family:system-ui,sans-serif;background:var(--sky);min-height:100vh;col
   100%{opacity:1;transform:translateY(0) scale(1);}
 }
 #main-menu-box .btn{width:100%;margin-top:10px;padding:12px;}
+
+/* ── Game mode submenu ── */
+#game-mode-submenu{display:none;animation:slideIn 0.3s ease-out;}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+#main-menu-buttons{display:flex;flex-direction:column;}
+.submenu-title{font-size:16px;font-weight:700;color:var(--text-dark);margin-top:16px;margin-bottom:12px;text-align:left;}
+.difficulty-selector{display:flex;flex-direction:column;gap:10px;padding:12px;background:rgba(0,0,0,0.03);border-radius:8px;}
+.difficulty-selector label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text-dark);transition:color 0.2s;}
+.difficulty-selector label:hover{color:var(--sky);}
+.difficulty-selector input[type="radio"]{cursor:pointer;accent-color:var(--sky);}
+.submenu-divider{height:1px;background:rgba(0,0,0,0.1);margin:16px 0;}
+.btn-back{background:rgba(0,0,0,0.08);border-color:rgba(0,0,0,0.1);color:var(--text-dark);font-size:13px;padding:10px !important;width:100%;margin-bottom:12px;}
+.btn-back:hover:not(:disabled){background:rgba(0,0,0,0.12);}
 #multiplayer-setup{margin-top:24px;padding-top:20px;border-top:1px solid var(--sand-border);text-align:left;}
 #multiplayer-setup p{font-size:13px;color:var(--text-mid);line-height:1.5;margin-bottom:8px;}
 #player-id-display{font-family:monospace;font-weight:700;background:var(--sand);padding:8px;border-radius:6px;text-align:center;margin-bottom:16px;cursor:pointer;user-select:all;}
