@@ -9,7 +9,7 @@ function log(msg) {
   if (G.log.length > 40) G.log.pop();
 }
 
-function newGame(gameMode = 'ai', isHost = false, campaignTeam = null) {
+function newGame(gameMode = 'ai', isHost = false, campaignTeam = null, aiDifficultyOverride = null) {
   const matchCfg = campaignTeam ? CAMPAIGN_MATCH_CONFIG[0] : null;
 
   G = {
@@ -19,7 +19,7 @@ function newGame(gameMode = 'ai', isHost = false, campaignTeam = null) {
 
     // Campaign match tracking
     campaignMatchIndex: campaignTeam ? 1 : 0,
-    aiDifficulty: matchCfg ? matchCfg.aiDifficulty : 0,
+    aiDifficulty: aiDifficultyOverride !== null ? aiDifficultyOverride : (matchCfg ? matchCfg.aiDifficulty : 0),
 
     // Score — driven by match config for campaign
     pPts: 0, aPts: 0,

@@ -5,9 +5,13 @@
 
 // ── UI element references ────────────────────────────────────────────────────
 const mainMenu          = document.getElementById('main-menu-overlay');
+const mainMenuButtons   = document.getElementById('main-menu-buttons');
+const gameModeSubmenu   = document.getElementById('game-mode-submenu');
 const multiplayerSetupUI = document.getElementById('multiplayer-setup');
 const appUI             = document.getElementById('app');
-const btnStartAI        = document.getElementById('btn-start-ai');
+const btnPlayGame       = document.getElementById('btn-play-game');
+const btnBackToMenu     = document.getElementById('btn-back-to-menu');
+const btnStartQuickGame = document.getElementById('btn-start-quick-game');
 const btnStartMultiplayer = document.getElementById('btn-start-multiplayer');
 const btnConnect        = document.getElementById('btn-connect-room');
 const playerIdDisplay   = document.getElementById('player-id-display');
@@ -38,11 +42,12 @@ function showMainMenu() {
   document.getElementById('btn-desistir').style.display = 'none';
   appUI.style.display    = 'none';
   mainMenu.style.display = 'flex';
-  // Reset multiplayer UI state
-  btnStartAI.style.display        = '';
-  btnStartMultiplayer.textContent = 'Multiplayer (Online)';
-  btnStartMultiplayer.disabled    = false;
-  multiplayerSetupUI.style.display = 'none';
+  // Reset menu state
+  mainMenuButtons.style.display     = 'flex';
+  gameModeSubmenu.style.display     = 'none';
+  btnStartMultiplayer.textContent   = '🌐 Multiplayer (Online)';
+  btnStartMultiplayer.disabled      = false;
+  multiplayerSetupUI.style.display  = 'none';
 }
 
 // ── Desistir / Quit confirmation ──────────────────────────────────────────────
@@ -89,16 +94,30 @@ if (_pendingTeam && CAMPAIGN_TEAMS[_pendingTeam]) {
   setTimeout(() => { initSeaCanvas(); initCrowd(); }, 0);
 }
 
-btnStartAI.addEventListener('click', () => {
+// ── Menu navigation: Jogar ──────────────────────────────────────────────────
+btnPlayGame.addEventListener('click', () => {
+  mainMenuButtons.style.display = 'none';
+  gameModeSubmenu.style.display = 'flex';
+  gameModeSubmenu.style.flexDirection = 'column';
+});
+
+btnBackToMenu.addEventListener('click', () => {
+  mainMenuButtons.style.display = 'flex';
+  gameModeSubmenu.style.display = 'none';
+});
+
+btnStartQuickGame.addEventListener('click', () => {
+  const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
   mainMenu.style.display    = 'none';
   appUI.style.display       = 'grid';
   btnDesistir.style.display = 'block';
-  newGame('ai');
+  newGame('ai', false, null, parseInt(selectedDifficulty));
   setTimeout(() => { initSeaCanvas(); initCrowd(); }, 0);
 });
 
 btnStartMultiplayer.addEventListener('click', () => {
-  btnStartAI.style.display         = 'none';
+  mainMenuButtons.style.display    = 'none';
+  gameModeSubmenu.style.display    = 'none';
   btnStartMultiplayer.textContent  = 'Criando Sala...';
   btnStartMultiplayer.disabled     = true;
   connectionStatus.textContent     = 'Aguardando conexão com o servidor...';
